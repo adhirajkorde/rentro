@@ -1,0 +1,35 @@
+# See https://github.com/github/gitignore/blob/main/Node.gitignore
+# See https://github.com/github/gitignore/blob/main/React.gitignore
+
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Environment variables
+.env
+
+# Build outputs
+dist/
+out/
+
+# Runtime stuff
+*.log
+
+# Vite
+/.vite
+
+# Sequelize
+*.migrations.*
+
+# Uploads
+uploads/
+
+# Database
+*.db
+*.sqlite
+
+# Misc
+.DS_Store
+runtimeconfig.json
