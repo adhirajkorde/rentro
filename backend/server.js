@@ -105,8 +105,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
-
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/rentora", {
@@ -114,24 +112,21 @@ mongoose
     useUnifiedTopology: true,
   })
   .then(() => {
-    console.log("📊 MongoDB connected successfully");
+    const PORT = process.env.PORT || 4000;
+
+    const server = app.listen(PORT, () => {
+      console.log(`🏢 Rentora Backend running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+    });
+
+    // Unhandled promise rejection handler
+    process.on("unhandledRejection", (err) => {
+      console.log(`🚨 Unhandled Rejection: ${err.message}`);
+      server.close(() => {
+        process.exit(1);
+      });
+    });
   })
   .catch((err) => {
     console.error("🚨 MongoDB connection error:", err);
     process.exit(1);
   });
-
-const server = app.listen(PORT, () => {
-  console.log(`🏢 Rentora Backend running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
-
-// Unhandled promise rejection handler
-process.on("unhandledRejection", (err) => {
-  console.log(`🚨 Unhandled Rejection: ${err.message}`);
-  server.close(() => {
-    process.exit(1);
-  });
-});
-
-// Export app for testing
-module.exports = app;

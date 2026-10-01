@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { model, models } = mongoose;
+const { model } = mongoose;
 
 const propertySchema = new mongoose.Schema(
   {
