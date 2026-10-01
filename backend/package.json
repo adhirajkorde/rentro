@@ -10,7 +10,13 @@
     "seed": "node seed.js",
     "build": "echo 'No build step for backend'"
   },
-  "keywords": ["rental", "property", "management", "mern", "saas"],
+  "keywords": [
+    "rental",
+    "property",
+    "management",
+    "mern",
+    "saas"
+  ],
   "author": "Rentora",
   "license": "MIT",
   "dependencies": {
@@ -27,7 +33,6 @@
     "mongoose": "^8.24.4",
     "morgan": "^1.12.1",
     "multer": "^1.4.5-lts.1",
-    "sharp": "^0.33.5",
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
