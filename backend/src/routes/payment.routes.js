@@ -1,4 +1,5 @@
 import express from "express";
+import { protect } from "../middleware/auth.middleware.js";
 import {
   getPayments,
   getPayment,
@@ -7,6 +8,7 @@ import {
 } from "../controllers/payment.controller.js";
 
 const router = express.Router();
+router.use(protect);
 
 router.route("/")
   .get(getPayments);

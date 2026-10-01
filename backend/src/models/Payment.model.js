@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { model, models } = mongoose;
 
 const paymentSchema = new mongoose.Schema(
@@ -53,4 +53,4 @@ paymentSchema.index({ rentRecord: 1 });
 paymentSchema.index({ tenant: 1, paymentDate: 1 });
 paymentSchema.index({ paymentDate: 1 });
 
-module.exports = model("Payment", paymentSchema);
+export default model("Payment", paymentSchema);

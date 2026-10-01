@@ -16,7 +16,7 @@ const userPayload = (user) => ({
 
 export const register = async (req, res, next) => {
   try {
-    const { fullName, email, password, role } = req.body;
+    const { fullName, email, password } = req.body;
 
     if (!fullName || !email || !password) {
       return res.status(400).json({ success: false, message: "Please provide all required fields" });
@@ -27,7 +27,7 @@ export const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: "User already exists with this email" });
     }
 
-    const user = await User.create({ fullName, email, password, role: role || "tenant" });
+    const user = await User.create({ fullName, email, password, role: "tenant" });
 
     if (req.logAction) req.logAction("user-created", "user", user._id);
 

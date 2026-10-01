@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { model, models } = mongoose;
 
 const maintenanceSchema = new mongoose.Schema(
@@ -57,4 +57,4 @@ maintenanceSchema.index({ tenant: 1, billingPeriod: 1 });
 maintenanceSchema.index({ property: 1, billingPeriod: 1 });
 maintenanceSchema.index({ category: 1, status: 1 });
 
-module.exports = model("Maintenance", maintenanceSchema);
+export default model("Maintenance", maintenanceSchema);

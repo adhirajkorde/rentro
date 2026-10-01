@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { model, models } = mongoose;
 
 const damageSchema = new mongoose.Schema(
@@ -50,4 +50,4 @@ const damageSchema = new mongoose.Schema(
 // Index
 damageSchema.index({ inspection: 1 });
 
-module.exports = model("Damage", damageSchema);
+export default model("Damage", damageSchema);

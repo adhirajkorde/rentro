@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { model, models } = mongoose;
 
 const policeVerificationSchema = new mongoose.Schema(
@@ -47,7 +47,6 @@ const policeVerificationSchema = new mongoose.Schema(
 
 // Indexes
 policeVerificationSchema.index({ tenant: 1, status: 1 });
-policeVerificationSchema.index({ referenceNumber: 1 }, { unique: true });
 policeVerificationSchema.index({ property: 1 });
 
-module.exports = model("PoliceVerification", policeVerificationSchema);
+export default model("PoliceVerification", policeVerificationSchema);

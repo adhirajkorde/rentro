@@ -1,4 +1,5 @@
 import express from "express";
+import { protect } from "../middleware/auth.middleware.js";
 import {
   getDocuments,
   getDocument,
@@ -8,6 +9,7 @@ import {
 } from "../controllers/document.controller.js";
 
 const router = express.Router();
+router.use(protect);
 
 router.route("/")
   .get(getDocuments);

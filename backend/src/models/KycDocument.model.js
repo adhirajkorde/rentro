@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { model, models } = mongoose;
 
 const kycDocumentSchema = new mongoose.Schema(
@@ -82,4 +82,4 @@ kycDocumentSchema.pre("save", function (next) {
   next();
 });
 
-module.exports = model("KycDocument", kycDocumentSchema);
+export default model("KycDocument", kycDocumentSchema);

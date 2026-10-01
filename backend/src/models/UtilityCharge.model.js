@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { model, models } = mongoose;
 
 const utilityChargeSchema = new mongoose.Schema(
@@ -57,4 +57,4 @@ utilitychargeSchema.index({ tenant: 1, billingPeriod: 1 });
 utilitychargeSchema.index({ property: 1, billingPeriod: 1 });
 utilitychargeSchema.index({ utilityType: 1, status: 1 });
 
-module.exports = model("UtilityCharge", utilitychargeSchema);
+export default model("UtilityCharge", utilitychargeSchema);

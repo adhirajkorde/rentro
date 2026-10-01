@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { model } = mongoose;
 
 const propertySchema = new mongoose.Schema(
@@ -125,4 +125,4 @@ propertySchema.index({ type: 1, status: 1 });
 propertySchema.index({ city: 1, state: 1 });
 propertySchema.index({ "location.coordinates": "2dsphere" });
 
-module.exports = model("Property", propertySchema);
+export default model("Property", propertySchema);

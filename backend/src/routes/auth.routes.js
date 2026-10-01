@@ -1,12 +1,15 @@
-const express = require("express");
+import express from "express";
+import * as authController from "../controllers/auth.controller.js";
+import { protect } from "../middleware/auth.middleware.js";
+
 const router = express.Router();
 
-router.post("/register", require("../controllers/auth.controller.js").register);
-router.post("/login", require("../controllers/auth.controller.js").login);
-router.get("/logout", require("../controllers/auth.controller.js").logout);
-router.post("/forgot-password", require("../controllers/auth.controller.js").forgotPassword);
-router.post("/reset-password", require("../controllers/auth.controller.js").resetPassword);
-router.post("/change-password", require("../controllers/auth.controller.js").changePassword);
-router.get("/me", require("../controllers/auth.controller.js").getMe);
+router.post("/register", authController.register);
+router.post("/login", authController.login);
+router.get("/logout", protect, authController.logout);
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/reset-password", authController.resetPassword);
+router.post("/change-password", protect, authController.changePassword);
+router.get("/me", protect, authController.getMe);
 
-module.exports = router;
+export default router;

@@ -1,6 +1,9 @@
-const express = require("express");
+import express from "express";
+import * as propertyController from "../controllers/property.controller.js";
+import { protect } from "../middleware/auth.middleware.js";
+
 const router = express.Router();
-const propertyController = require("../controllers/property.controller.js");
+router.use(protect);
 
 router.route("/")
   .get(propertyController.getProperties)
@@ -20,4 +23,4 @@ router.route("/:id")
 router.route("/:id/status")
   .put(propertyController.togglePropertyStatus);
 
-module.exports = router;
+export default router;

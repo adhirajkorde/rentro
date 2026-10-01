@@ -166,12 +166,12 @@ const Dashboard = () => {
         <div className="space-y-4">
           <h3 className="text-font-medium text-rentora-dark mb-3">Recent Rent Payments</h3>
           <EmptyState
-            icon=<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4m0 4v8m0-8V2a2 2 0 0 0-2-2h-2m2 4h2m7 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0"/></svg>
+            icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4m0 4v8m0-8V2a2 2 0 0 0-2-2h-2m2 4h2m7 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0" /></svg>}
             title="No rent payments yet"
             description="Add your first property to start tracking rent payments"
           />
           <Table
-            columns=["Tenant", "Property", "Amount", "Status", "Date"]
+            columns={["Tenant", "Property", "Amount", "Status", "Date"]}
             data={[]}
             title="Recent payments"
           />
@@ -180,7 +180,7 @@ const Dashboard = () => {
         <div className="space-y-4">
           <h3 className="text-font-medium text-rentora-dark mb-3">Recent Tenants</h3>
           <EmptyState
-            icon=<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="3" cy="3" r="3"/><circle cx="5" cy="5" r="3"/><circle cx="9" cy="9" r="3"/><circle cx="11" cy="11" r="3"/> <line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="3" cy="3" r="3" /><circle cx="5" cy="5" r="3" /><circle cx="9" cy="9" r="3" /><circle cx="11" cy="11" r="3" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>}
             title="No tenants yet"
             description="Add your first tenant to get started"
           />

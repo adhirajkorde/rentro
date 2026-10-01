@@ -1,4 +1,5 @@
 import express from "express";
+import { protect } from "../middleware/auth.middleware.js";
 import {
   getRentRecords,
   getRentRecord,
@@ -8,6 +9,7 @@ import {
 } from "../controllers/rent.controller.js";
 
 const router = express.Router();
+router.use(protect);
 
 router.route("/")
   .get(getRentRecords);

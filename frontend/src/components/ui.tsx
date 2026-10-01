@@ -26,7 +26,7 @@ export const StatsCard = ({
     <div className={`bg-rentora-card rounded-lg border border-rentora-border p-6 ${className}`}>
       <div className="flex items-start justify-between mb-2">
         <span className="text-rentora-muted text-sm">{title}</span>
-        <icon />
+        {icon}
       </div>
       <div className="text-2xl font-bold text-rentora-accent">{value}</div>
       <p className="text-rentora-muted text-sm">{subtitle}</p>
@@ -85,7 +85,7 @@ export const Table = ({ columns, data, title }: { columns: string[]; data: any[]
 export const EmptyState = ({ icon, title, description }: { icon: JSX.Element; title: string; description: string }) => {
   return (
     <div className="text-center py-12">
-      <icon className="w-16 h-16 mx-auto text-rentora-muted mb-4" />
+      {icon}
       <h3 className="text-rentora-dark font-medium mb-2">{title}</h3>
       <p className="text-rentora-muted">{description}</p>
     </div>

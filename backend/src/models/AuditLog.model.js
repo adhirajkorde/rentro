@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { model, models } = mongoose;
 
 const auditLogSchema = new mongoose.Schema(
@@ -53,4 +53,4 @@ auditLogSchema.index({ user: 1, createdAt: -1 });
 auditLogSchema.index({ action: 1, createdAt: -1 });
 auditLogSchema.index({ resource: 1, createdAt: -1 });
 
-module.exports = model("AuditLog", auditLogSchema);
+export default model("AuditLog", auditLogSchema);
