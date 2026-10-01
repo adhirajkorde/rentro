@@ -2,7 +2,6 @@
   "name": "rentora-backend",
   "version": "1.0.0",
   "description": "Rentora - Smart Rental Property Management Backend",
-  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
