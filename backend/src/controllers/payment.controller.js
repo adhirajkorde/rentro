@@ -1,23 +1,15 @@
 import Payment from "../models/Payment.model.js";
 import RentRecord from "../models/RentRecord.model.js";
-import ErrorResponse from "../utils/error.util.js";
 
-export const getPayments = async (req, res) => {
+export const getPayments = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const filter = {};
-
-    if (req.query.tenant) {
-      filter.tenant = req.query.tenant;
-    }
-
-    if (req.query.property) {
-      filter.property = req.query.property;
-    }
-
+    if (req.query.tenant) filter.tenant = req.query.tenant;
+    if (req.query.property) filter.property = req.query.property;
     if (req.query.startDate && req.query.endDate) {
       filter.paymentDate = {
         $gte: new Date(req.query.startDate),
@@ -25,12 +17,10 @@ export const getPayments = async (req, res) => {
       };
     }
 
-    const payments = await Payment.find(filter)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const total = await Payment.countDocuments(filter);
+    const [payments, total] = await Promise.all([
+      Payment.find(filter).skip(skip).limit(limit).sort({ paymentDate: -1 }),
+      Payment.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -41,135 +31,89 @@ export const getPayments = async (req, res) => {
       data: payments,
     });
   } catch (error) {
-    console.error("Get payments error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching payments",
-    });
+    next(error);
   }
 };
 
-export const getPayment = async (req, res) => {
+export const getPayment = async (req, res, next) => {
   try {
     const payment = await Payment.findById(req.params.id);
 
     if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: "Payment not found",
-      });
+      return res.status(404).json({ success: false, message: "Payment not found" });
     }
 
-    res.status(200).json({
-      success: true,
-      data: payment,
-    });
+    res.status(200).json({ success: true, data: payment });
   } catch (error) {
-    console.error("Get payment error:", error);
-    if (error.kind === "ObjectId" || error.name === "CastError") {
-      return res.status(404).json({
-        success: false,
-        message: "Payment not found",
-      });
-    }
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching payment",
-    });
+    next(error);
   }
 };
 
-export const createPayment = async (req, res) => {
+export const createPayment = async (req, res, next) => {
   try {
-    const {
-      rentRecord,
-      tenant,
-      property,
-      agreement,
-      amount,
-      paymentMethod,
-    } = req.body;
+    const { rentRecordId, tenant, property, agreement, amount, paymentMethod, transactionId, notes } = req.body;
 
-    if (!rentRecord || !amount) {
-      return res.status(400).json({
-        success: false,
-        message: "Rent record and amount are required",
-      });
+    if (!rentRecordId || !amount || !paymentMethod) {
+      return res.status(400).json({ success: false, message: "Rent record, amount, and payment method are required" });
     }
 
-    // Check if amount exceeds remaining
-    const rentRecord = await RentRecord.findById(rentRecord);
+    // Fetch the rent record — never trust amount from frontend
+    const record = await RentRecord.findById(rentRecordId);
 
-    if (!rentRecord) {
-      return res.status(404).json({
-        success: false,
-        message: "Rent record not found",
-      });
+    if (!record) {
+      return res.status(404).json({ success: false, message: "Rent record not found" });
     }
 
-    if (amount > rentRecord.rentAmount) {
-      return res.status(400).json({
-        success: false,
-        message: "Payment amount cannot exceed rent amount",
-      });
+    if (record.status === "paid") {
+      return res.status(400).json({ success: false, message: "Rent record is already fully paid" });
     }
+
+    const payableAmount = Math.min(Number(amount), record.remainingAmount);
 
     const payment = await Payment.create({
-      rentRecord,
-      tenant,
-      property,
-      agreement,
-      amount,
+      rentRecord: rentRecordId,
+      tenant: tenant || record.tenant,
+      property: property || record.property,
+      agreement: agreement || record.agreement,
+      amount: payableAmount,
       paymentMethod,
+      transactionId,
+      notes,
     });
 
-    // Update rent record
-    rentRecord.paidAmount = (rentRecord.paidAmount || 0) + amount;
-    rentRecord.remainingAmount = rentRecord.rentAmount - rentRecord.paidAmount;
+    // Update rent record — server-side calculation
+    record.paidAmount = (record.paidAmount || 0) + payableAmount;
+    record.remainingAmount = record.rentAmount - record.paidAmount;
+    record.paymentDate = new Date();
+    record.paymentMethod = paymentMethod;
 
-    if (rentRecord.paidAmount >= rentRecord.rentAmount) {
-      rentRecord.status = "paid";
-    } else if (rentRecord.paidAmount > 0) {
-      rentRecord.status = "partially-paid";
+    if (record.paidAmount >= record.rentAmount) {
+      record.status = "paid";
+    } else {
+      record.status = "partially-paid";
     }
 
-    await rentRecord.save();
+    await record.save();
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("payment-recorded", "payment", payment._id, null, {
-        rentRecord,
-        amount,
-      });
-    }
+    if (req.logAction) req.logAction("payment-recorded", "payment", payment._id);
 
-    res.status(201).json({
-      success: true,
-      message: "Payment recorded successfully",
-      data: payment,
-    });
+    res.status(201).json({ success: true, message: "Payment recorded successfully", data: payment });
   } catch (error) {
-    console.error("Create payment error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while recording payment",
-    });
+    next(error);
   }
 };
 
-export const getTenantPayments = async (req, res) => {
+export const getTenantPayments = async (req, res, next) => {
   try {
     const { tenantId } = req.params;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const payments = await Payment.find({ tenant: tenantId })
-      .skip(skip)
-      .limit(limit)
-      .sort({ paymentDate: -1 });
-
-    const total = await Payment.countDocuments({ tenant: tenantId });
+    const [payments, total] = await Promise.all([
+      Payment.find({ tenant: tenantId }).skip(skip).limit(limit).sort({ paymentDate: -1 }),
+      Payment.countDocuments({ tenant: tenantId }),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -180,10 +124,6 @@ export const getTenantPayments = async (req, res) => {
       data: payments,
     });
   } catch (error) {
-    console.error("Get tenant payments error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching tenant payments",
-    });
+    next(error);
   }
 };

@@ -1,50 +1,49 @@
+import fs from "fs";
 import Property from "../models/Property.model.js";
 import PropertyMedia from "../models/PropertyMedia.model.js";
-import ErrorResponse from "../utils/error.util.js";
-import upload from "../utils/multer.config.js";
 
-export const getProperties = async (req, res) => {
+const buildPropertyFilter = (query) => {
+  const filter = {};
+  if (query.owner) filter.owner = query.owner;
+  if (query.status) filter.status = query.status;
+  if (query.type) filter.type = query.type;
+  if (query.city) filter.city = query.city;
+  if (query.state) filter.state = query.state;
+  if (query.minRent || query.maxRent) {
+    filter.monthlyRent = {};
+    if (query.minRent) filter.monthlyRent.$gte = Number(query.minRent);
+    if (query.maxRent) filter.monthlyRent.$lte = Number(query.maxRent);
+  }
+  return filter;
+};
+
+const processUploadedFiles = (files) =>
+  (files || []).map((file, index) => ({
+    url: file.path || `/uploads/${file.filename}`,
+    type: file.mimetype.startsWith("video/") ? "video" : "photo",
+    publicId: file.filename,
+    index,
+  }));
+
+const cleanupLocalFiles = (files) => {
+  for (const file of files || []) {
+    if (file.path && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+  }
+};
+
+export const getProperties = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const filter = buildPropertyFilter(req.query);
 
-    // Build filter query
-    const filter = {};
-
-    if (req.query.owner) {
-      filter.owner = req.query.owner;
-    }
-
-    if (req.query.status) {
-      filter.status = req.query.status;
-    }
-
-    if (req.query.type) {
-      filter.type = req.query.type;
-    }
-
-    if (req.query.city) {
-      filter.city = req.query.city;
-    }
-
-    if (req.query.state) {
-      filter.state = req.query.state;
-    }
-
-    if (req.query.minRent && req.query.maxRent) {
-      filter.monthlyRent = {
-        $gte: Number(req.query.minRent),
-        $lte: Number(req.query.maxRent),
-      };
-    }
-
-    const properties = await Property.find(filter)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const total = await Property.countDocuments(filter);
+    const [properties, total] = await Promise.all([
+      Property.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      Property.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -55,243 +54,119 @@ export const getProperties = async (req, res) => {
       data: properties,
     });
   } catch (error) {
-    console.error("Get properties error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching properties",
-    });
+    next(error);
   }
 };
 
-export const getProperty = async (req, res) => {
+export const getProperty = async (req, res, next) => {
   try {
     const property = await Property.findById(req.params.id);
 
     if (!property) {
-      return res.status(404).json({
-        success: false,
-        message: "Property not found",
-      });
+      return res.status(404).json({ success: false, message: "Property not found" });
     }
 
-    // Get media for this property
-    const media = await PropertyMedia.find({ property: property._id }).sort({
-      isPrimary: -1,
-      order: 1,
-    });
+    const media = await PropertyMedia.find({ property: property._id }).sort({ isPrimary: -1, order: 1 });
 
-    res.status(200).json({
-      success: true,
-      data: {
-        ...property.toObject(),
-        media,
-      },
-    });
+    res.status(200).json({ success: true, data: { ...property.toObject(), media } });
   } catch (error) {
-    console.error("Get property error:", error);
-    if (error.kind === "ObjectId" || error.name === "CastError") {
-      return res.status(404).json({
-        success: false,
-        message: "Property not found",
-      });
-    }
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching property",
-    });
+    next(error);
   }
 };
 
-export const createProperty = async (req, res) => {
+export const createProperty = async (req, res, next) => {
   try {
-    // Handle file uploads
-    let mediaFiles = [];
-
-    if (req.files && req.files.length > 0) {
-      const files = req.files;
-
-      for (const file of files) {
-        const url = file.path || `/uploads/${file.filename}`;
-        const publicId = file.filename;
-
-        // Upload to Cloudinary (configured later)
-        // const result = await cloudinary.uploader.upload(file.path);
-
-        mediaFiles.push({
-          url,
-          type: file.mimetype.startsWith("video/)") ? "video" : "photo",
-          publicId,
-        });
-      }
-
-      // Clean up local files
-      for (const file of files) {
-        if (fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-      }
-    }
+    const mediaFiles = processUploadedFiles(req.files);
 
     const {
-      name,
-      type,
-      description,
-      address,
-      city,
-      state,
-      country,
-      pincode,
-      area,
-      bedrooms,
-      bathrooms,
-      furnishingStatus,
-      monthlyRent,
-      securityDeposit,
-      maintenanceCharge,
-      electricityDetails,
-      waterDetails,
-      owner,
-      propertyManager,
-      status,
+      name, type, description, address, city, state, country, pincode,
+      area, bedrooms, bathrooms, furnishingStatus, monthlyRent,
+      securityDeposit, maintenanceCharge, electricityDetails, waterDetails,
+      propertyManager, status,
     } = req.body;
 
-    // Validate required fields
-    if (!name || !type || !address || !city || !monthlyRent || !owner) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide all required fields",
-      });
+    if (!name || !type || !address || !monthlyRent) {
+      cleanupLocalFiles(req.files);
+      return res.status(400).json({ success: false, message: "Please provide all required fields" });
     }
 
+    // Owner is always the authenticated user — never trust frontend
     const property = await Property.create({
-      name,
-      type,
-      description,
-      address,
-      city,
-      state,
-      country,
-      pincode,
-      area,
-      bedrooms,
-      bathrooms,
-      furnishingStatus,
-      monthlyRent,
-      securityDeposit,
-      maintenanceCharge,
-      electricityDetails,
-      waterDetails,
-      owner,
+      name, type, description, address, city, state, country, pincode,
+      area, bedrooms, bathrooms, furnishingStatus, monthlyRent,
+      securityDeposit, maintenanceCharge, electricityDetails, waterDetails,
+      owner: req.user._id,
       propertyManager,
       status,
     });
 
-    // Create media records
     if (mediaFiles.length > 0) {
       await PropertyMedia.insertMany(
         mediaFiles.map((media) => ({
           property: property._id,
           url: media.url,
           type: media.type,
-          isPrimary: mediaFiles.indexOf(media) === 0, // First image is primary
-          order: mediaFiles.indexOf(media),
+          publicId: media.publicId,
+          isPrimary: media.index === 0,
+          order: media.index,
         }))
       );
     }
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("property-created", "property", property._id, null, {
-        name,
-        type,
-      });
-    }
+    cleanupLocalFiles(req.files);
 
-    res.status(201).json({
-      success: true,
-      message: "Property created successfully",
-      data: property,
-    });
+    if (req.logAction) req.logAction("property-created", "property", property._id);
+
+    res.status(201).json({ success: true, message: "Property created successfully", data: property });
   } catch (error) {
-    console.error("Create property error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while creating property",
-    });
+    cleanupLocalFiles(req.files);
+    next(error);
   }
 };
 
-export const updateProperty = async (req, res) => {
+export const updateProperty = async (req, res, next) => {
   try {
-    let mediaFiles = [];
+    const mediaFiles = processUploadedFiles(req.files);
 
-    if (req.files && req.files.length > 0) {
-      const files = req.files;
-
-      for (const file of files) {
-        const url = file.path || `/uploads/${file.filename}`;
-        const publicId = file.filename;
-
-        mediaFiles.push({
-          url,
-          type: file.mimetype.startsWith("video/") ? "video" : "photo",
-          publicId,
-        });
-
-        // Clean up local files
-        if (fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-      }
-    }
+    // Prevent owner field from being changed via body
+    const { owner: _owner, ...updateData } = req.body;
 
     const property = await Property.findByIdAndUpdate(
       req.params.id,
-      {
-        ...req.body,
-        ...(mediaFiles.length > 0 && { $push: { media: { $each: mediaFiles } } } },
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
+      updateData,
+      { new: true, runValidators: true }
     );
 
     if (!property) {
-      return res.status(404).json({
-        success: false,
-        message: "Property not found",
-      });
+      cleanupLocalFiles(req.files);
+      return res.status(404).json({ success: false, message: "Property not found" });
     }
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("property-updated", "property", property._id, null, {
-        name: property.name,
-      });
+    if (mediaFiles.length > 0) {
+      await PropertyMedia.insertMany(
+        mediaFiles.map((media, index) => ({
+          property: property._id,
+          url: media.url,
+          type: media.type,
+          publicId: media.publicId,
+          isPrimary: false,
+          order: index,
+        }))
+      );
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Property updated successfully",
-      data: property,
-    });
+    cleanupLocalFiles(req.files);
+
+    if (req.logAction) req.logAction("property-updated", "property", property._id);
+
+    res.status(200).json({ success: true, message: "Property updated successfully", data: property });
   } catch (error) {
-    console.error("Update property error:", error);
-    if (error.kind === "ObjectId" || error.name === "CastError") {
-      return res.status(404).json({
-        success: false,
-        message: "Property not found",
-      });
-    }
-    res.status(500).json({
-      success: false,
-      message: "Server error while updating property",
-    });
+    cleanupLocalFiles(req.files);
+    next(error);
   }
 };
 
-export const deleteProperty = async (req, res) => {
+export const deleteProperty = async (req, res, next) => {
   try {
     const property = await Property.findByIdAndUpdate(
       req.params.id,
@@ -300,45 +175,48 @@ export const deleteProperty = async (req, res) => {
     );
 
     if (!property) {
-      return res.status(404).json({
-        success: false,
-        message: "Property not found",
-      });
+      return res.status(404).json({ success: false, message: "Property not found" });
     }
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("property-archived", "property", property._id);
-    }
+    if (req.logAction) req.logAction("property-archived", "property", property._id);
 
-    res.status(200).json({
-      success: true,
-      message: "Property archived successfully",
-    });
+    res.status(200).json({ success: true, message: "Property archived successfully" });
   } catch (error) {
-    console.error("Delete property error:", error);
-    if (error.kind === "ObjectId" || error.name === "CastError") {
-      return res.status(404).json({
-        success: false,
-        message: "Property not found",
-      });
-    }
-    res.status(500).json({
-      success: false,
-      message: "Server error while archiving property",
-    });
+    next(error);
   }
 };
 
-export const searchProperties = async (req, res) => {
+export const togglePropertyStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ["available", "occupied", "reserved", "under-maintenance", "archived"];
+
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: "Invalid status value" });
+    }
+
+    const property = await Property.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+
+    if (!property) {
+      return res.status(404).json({ success: false, message: "Property not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Property status updated", data: property });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const searchProperties = async (req, res, next) => {
   try {
     const { q } = req.query;
 
     if (!q) {
-      return res.status(400).json({
-        success: false,
-        message: "Search query is required",
-      });
+      return res.status(400).json({ success: false, message: "Search query is required" });
     }
 
     const properties = await Property.find({
@@ -350,56 +228,18 @@ export const searchProperties = async (req, res) => {
       ],
     }).limit(10);
 
-    res.status(200).json({
-      success: true,
-      count: properties.length,
-      data: properties,
-    });
+    res.status(200).json({ success: true, count: properties.length, data: properties });
   } catch (error) {
-    console.error("Search properties error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while searching properties",
-    });
+    next(error);
   }
 };
 
-export const filterProperties = async (req, res) => {
+export const filterProperties = async (req, res, next) => {
   try {
-    const { type, status, city, minRent, maxRent } = req.query;
-
-    const filter = {};
-
-    if (type) {
-      filter.type = type;
-    }
-
-    if (status) {
-      filter.status = status;
-    }
-
-    if (city) {
-      filter.city = city;
-    }
-
-    if (minRent || maxRent) {
-      filter.monthlyRent = {};
-      if (minRent) filter.monthlyRent.$gte = Number(minRent);
-      if (maxRent) filter.monthlyRent.$lte = Number(maxRent);
-    }
-
+    const filter = buildPropertyFilter(req.query);
     const properties = await Property.find(filter);
-
-    res.status(200).json({
-      success: true,
-      count: properties.length,
-      data: properties,
-    });
+    res.status(200).json({ success: true, count: properties.length, data: properties });
   } catch (error) {
-    console.error("Filter properties error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while filtering properties",
-    });
+    next(error);
   }
 };

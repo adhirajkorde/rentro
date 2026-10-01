@@ -1,232 +1,144 @@
+import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
-import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
-import path from "path";
 
-export const register = async (req, res) => {
+const signToken = (id) =>
+  jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || "30d",
+  });
+
+const userPayload = (user) => ({
+  id: user._id,
+  fullName: user.fullName,
+  email: user.email,
+  role: user.role,
+  profileImage: user.profileImage,
+});
+
+export const register = async (req, res, next) => {
   try {
     const { fullName, email, password, role } = req.body;
 
     if (!fullName || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide all required fields",
-      });
+      return res.status(400).json({ success: false, message: "Please provide all required fields" });
     }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "User already exists with this email",
-      });
+      return res.status(409).json({ success: false, message: "User already exists with this email" });
     }
 
-    const user = await User.create({
-      fullName,
-      email,
-      password,
-      role: role || "tenant",
-    });
+    const user = await User.create({ fullName, email, password, role: role || "tenant" });
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("user-created", "user", user.id);
-    }
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "30d",
-    });
+    if (req.logAction) req.logAction("user-created", "user", user._id);
 
     res.status(201).json({
       success: true,
       message: "User registered successfully",
-      data: {
-        token,
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-        },
-      },
+      data: { token: signToken(user._id), user: userPayload(user) },
     });
   } catch (error) {
-    console.error("Register error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during registration",
-    });
+    next(error);
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide email and password",
-      });
+      return res.status(400).json({ success: false, message: "Please provide email and password" });
     }
 
     const user = await User.findOne({ email }).select("+password");
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
 
-    const isMatch = await user.comparePassword(password);
-
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "30d",
-    });
+    if (req.logAction) req.logAction("user-login", "user", user._id);
 
     res.status(200).json({
       success: true,
       message: "Login successful",
-      data: {
-        token,
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          profileImage: user.profileImage,
-        },
-      },
+      data: { token: signToken(user._id), user: userPayload(user) },
     });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during login",
-    });
+    next(error);
   }
 };
 
-export const logout = async (req, res) => {
+export const logout = async (req, res, next) => {
   try {
-    if (req.user) {
-      // Log action
-      if (req.logAction) {
-        req.logAction("user-logout", "user", req.user.id);
-      }
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Logged out successfully",
-    });
+    if (req.user && req.logAction) req.logAction("user-logout", "user", req.user._id);
+    res.status(200).json({ success: true, message: "Logged out successfully" });
   } catch (error) {
-    console.error("Logout error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during logout",
-    });
+    next(error);
   }
 };
 
-export const forgotPassword = async (req, res) => {
+export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email is required",
-      });
+      return res.status(400).json({ success: false, message: "Email is required" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+passwordResetToken +passwordResetExpires");
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found with this email",
+      // Return 200 to prevent email enumeration
+      return res.status(200).json({
+        success: true,
+        message: "If an account with that email exists, a reset link has been sent.",
       });
     }
 
-    // Generate reset token
     const resetToken = jwt.sign(
       { id: user._id },
       process.env.JWT_RESET_SECRET || process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    // In production, send email with reset link
-    // For now, return token to user (in real app, use email service)
     user.passwordResetToken = resetToken;
-    user.passwordResetExpires = Date.now() + 3600000; // 1 hour
+    user.passwordResetExpires = Date.now() + 3600000;
     await user.save({ validateBeforeSave: false });
+
+    // TODO: Send email with reset link in production
+    // await sendResetEmail(user.email, resetToken);
 
     res.status(200).json({
       success: true,
-      message: "Password reset token generated. Check your email for reset link.",
+      message: "If an account with that email exists, a reset link has been sent.",
     });
   } catch (error) {
-    console.error("Forgot password error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during password reset",
-    });
+    next(error);
   }
 };
 
-export const resetPassword = async (req, res) => {
+export const resetPassword = async (req, res, next) => {
   try {
     const { token, password, passwordConfirm } = req.body;
 
     if (!token || !password || !passwordConfirm) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide all required fields",
-      });
-    }
-
-    // Verify token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_RESET_SECRET || process.env.JWT_SECRET);
-    } catch (err) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or expired token",
-      });
-    }
-
-    const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    if (user.passwordResetToken !== token || user.passwordResetExpires < Date.now()) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or expired token",
-      });
+      return res.status(400).json({ success: false, message: "Please provide all required fields" });
     }
 
     if (password !== passwordConfirm) {
-      return res.status(400).json({
-        success: false,
-        message: "Passwords do not match",
-      });
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_RESET_SECRET || process.env.JWT_SECRET);
+    } catch {
+      return res.status(400).json({ success: false, message: "Invalid or expired token" });
+    }
+
+    const user = await User.findById(decoded.id).select("+passwordResetToken +passwordResetExpires");
+
+    if (!user || user.passwordResetToken !== token || user.passwordResetExpires < Date.now()) {
+      return res.status(400).json({ success: false, message: "Invalid or expired token" });
     }
 
     user.password = password;
@@ -234,128 +146,58 @@ export const resetPassword = async (req, res) => {
     user.passwordResetExpires = undefined;
     await user.save();
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("password-reset", "user", user.id);
-    }
+    if (req.logAction) req.logAction("password-reset", "user", user._id);
 
-    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "30d",
-    });
+    const newToken = signToken(user._id);
 
     res.status(200).json({
       success: true,
       message: "Password reset successful",
-      data: {
-        token: resetToken,
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-        },
-      },
+      data: { token: newToken, user: userPayload(user) },
     });
   } catch (error) {
-    console.error("Reset password error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during password reset",
-    });
+    next(error);
   }
 };
 
-export const changePassword = async (req, res) => {
+export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword, newPasswordConfirm } = req.body;
 
     if (!currentPassword || !newPassword || !newPasswordConfirm) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide all required fields",
-      });
-    }
-
-    const user = await User.findById(req.user.id).select("+password");
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    const isMatch = await user.comparePassword(currentPassword);
-
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Current password is incorrect",
-      });
+      return res.status(400).json({ success: false, message: "Please provide all required fields" });
     }
 
     if (newPassword !== newPasswordConfirm) {
-      return res.status(400).json({
-        success: false,
-        message: "New passwords do not match",
-      });
+      return res.status(400).json({ success: false, message: "New passwords do not match" });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+
+    if (!user || !(await user.comparePassword(currentPassword))) {
+      return res.status(401).json({ success: false, message: "Current password is incorrect" });
     }
 
     user.password = newPassword;
     await user.save();
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("password-change", "user", user.id);
-    }
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "30d",
-    });
+    if (req.logAction) req.logAction("password-change", "user", user._id);
 
     res.status(200).json({
       success: true,
       message: "Password changed successfully",
-      data: {
-        token,
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-        },
-      },
+      data: { token: signToken(user._id), user: userPayload(user) },
     });
   } catch (error) {
-    console.error("Change password error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during password change",
-    });
+    next(error);
   }
 };
 
-export const getMe = async (req, res) => {
+export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        profileImage: user.profileImage,
-        phone: user.phone,
-        address: user.address,
-      },
-    });
+    const user = await User.findById(req.user._id);
+    res.status(200).json({ success: true, data: userPayload(user) });
   } catch (error) {
-    console.error("Get me error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    next(error);
   }
 };

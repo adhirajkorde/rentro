@@ -2,60 +2,36 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
 
 export const protect = async (req, res, next) => {
-  let token;
+  const authHeader = req.headers.authorization;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    try {
-      token = req.headers.authorization.split(" ")[1];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ success: false, message: "No token provided" });
+  }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const token = authHeader.split(" ")[1];
 
-      req.user = await User.findById(decoded.id).select("-password");
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
 
-      if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          message: "User not found",
-        });
-      }
-
-      next();
-    } catch (error) {
-      if (error.name === "JsonWebTokenError") {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid token",
-        });
-      }
-      if (error.name === "TokenExpiredError") {
-        return res.status(401).json({
-          success: false,
-          message: "Token expired",
-        });
-      }
-      res.status(401).json({
-        success: false,
-        message: "Token invalid",
-      });
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User not found" });
     }
-  } else {
-    res.status(401).json({
-      success: false,
-      message: "No token provided",
-    });
+
+    req.user = user;
+    next();
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ success: false, message: "Token expired" });
+    }
+    return res.status(401).json({ success: false, message: "Invalid token" });
   }
 };
 
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to access this route",
-      });
+      return res.status(403).json({ success: false, message: "Not authorized to access this route" });
     }
     next();
   };
@@ -65,31 +41,19 @@ export const checkOwnership = (resourceModel) => {
   return async (req, res, next) => {
     try {
       const resourceId = req.params.id || req.body.resourceId;
-
-      const resource = await resourceModel.findById(resourceId).select(
-        "owner"
-      );
+      const resource = await resourceModel.findById(resourceId).select("owner");
 
       if (!resource) {
-        return res.status(404).json({
-          success: false,
-          message: "Resource not found",
-        });
+        return res.status(404).json({ success: false, message: "Resource not found" });
       }
 
-      if (resource.owner.toString() !== req.user._   .id.toString() && req.user.role !== "super-admin") {
-        return res.status(403).json({
-          success: false,
-          message: "Not authorized to access this resource",
-        });
+      if (resource.owner.toString() !== req.user._id.toString() && req.user.role !== "super-admin") {
+        return res.status(403).json({ success: false, message: "Not authorized to access this resource" });
       }
 
       next();
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Error checking resource ownership",
-      });
+      next(error);
     }
   };
 };
