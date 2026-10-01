@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const agreementSignatureSchema = new mongoose.Schema(
   {
@@ -32,4 +33,4 @@ const agreementSignatureSchema = new mongoose.Schema(
 // Index
 agreementSignatureSchema.index({ agreement: 1 });
 
-export default model("AgreementSignature", agreementSignatureSchema);
+module.exports = model("AgreementSignature", agreementSignatureSchema);

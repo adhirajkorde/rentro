@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const tenantSchema = new mongoose.Schema(
   {
@@ -88,4 +89,4 @@ const tenantSchema = new mongoose.Schema(
 tenantSchema.index({ email: 1 }, { unique: true });
 tenantSchema.index({ currentProperty: 1 });
 
-export default model("Tenant", tenantSchema);
+module.exports = model("Tenant", tenantSchema);

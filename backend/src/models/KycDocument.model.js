@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const kycDocumentSchema = new mongoose.Schema(
   {
@@ -52,7 +53,7 @@ const kycDocumentSchema = new mongoose.Schema(
     },
   },
   { timestamps: true }
-});
+);
 
 // Indexes
 kycDocumentSchema.index({ tenant: 1, documentType: 1 });
@@ -81,4 +82,4 @@ kycDocumentSchema.pre("save", function (next) {
   next();
 });
 
-export default model("KycDocument", kycDocumentSchema);
+module.exports = model("KycDocument", kycDocumentSchema);

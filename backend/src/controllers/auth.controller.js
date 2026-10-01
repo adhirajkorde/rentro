@@ -239,7 +239,7 @@ export const resetPassword = async (req, res) => {
       req.logAction("password-reset", "user", user.id);
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_IN || "30d",
     });
 
@@ -247,7 +247,7 @@ export const resetPassword = async (req, res) => {
       success: true,
       message: "Password reset successful",
       data: {
-        token,
+        token: resetToken,
         user: {
           id: user._id,
           fullName: user.fullName,

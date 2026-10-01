@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const rentalAgreementSchema = new mongoose.Schema(
   {
@@ -72,4 +73,4 @@ rentalAgreementSchema.index({ status: 1 });
 // Compound index for owner + tenant + property
 rentalAgreementSchema.index({ owner: 1, tenant: 1, property: 1 });
 
-export default model("RentalAgreement", rentalAgreementSchema);
+module.exports = model("RentalAgreement", rentalAgreementSchema);

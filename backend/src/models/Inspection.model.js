@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const inspectionSchema = new mongoose.Schema(
   {
@@ -89,11 +90,11 @@ const inspectionSchema = new mongoose.Schema(
     },
   },
   { timestamps: true }
-});
+);
 
 // Indexes
 inspectionSchema.index({ property: 1, tenant: 1 });
 inspectionSchema.index({ type: 1, status: 1 });
 inspectionSchema.index({ inspectionDate: 1 });
 
-export default model("Inspection", inspectionSchema);
+module.exports = model("Inspection", inspectionSchema);

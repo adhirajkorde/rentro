@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const inspectionMediaSchema = new mongoose.Schema(
   {
@@ -34,4 +35,4 @@ const inspectionMediaSchema = new mongoose.Schema(
 // Index
 inspectionMediaSchema.index({ inspection: 1, order: 1 });
 
-export default model("InspectionMedia", inspectionMediaSchema);
+module.exports = model("InspectionMedia", inspectionMediaSchema);

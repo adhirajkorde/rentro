@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const maintenanceSchema = new mongoose.Schema(
   {
@@ -56,4 +57,4 @@ maintenanceSchema.index({ tenant: 1, billingPeriod: 1 });
 maintenanceSchema.index({ property: 1, billingPeriod: 1 });
 maintenanceSchema.index({ category: 1, status: 1 });
 
-export default model("Maintenance", maintenanceSchema);
+module.exports = model("Maintenance", maintenanceSchema);

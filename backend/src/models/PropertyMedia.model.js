@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const propertyMediaSchema = new mongoose.Schema(
   {
@@ -38,4 +39,4 @@ const propertyMediaSchema = new mongoose.Schema(
 // Index
 propertyMediaSchema.index({ property: 1, isPrimary: 1 });
 
-export default model("PropertyMedia", propertyMediaSchema);
+module.exports = model("PropertyMedia", propertyMediaSchema);

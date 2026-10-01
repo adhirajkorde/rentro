@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const rentRecordSchema = new mongoose.Schema(
   {
@@ -85,4 +86,4 @@ rentRecordSchema.pre("save", function (next) {
   next();
 });
 
-export default model("RentRecord", rentRecordSchema);
+module.exports = model("RentRecord", rentRecordSchema);

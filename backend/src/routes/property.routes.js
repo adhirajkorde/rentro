@@ -1,33 +1,23 @@
-import express from "express";
-import {
-  getProperties,
-  getProperty,
-  createProperty,
-  updateProperty,
-  deleteProperty,
-  searchProperties,
-  filterProperties,
-  togglePropertyStatus,
-} from "../controllers/property.controller.js";
-
+const express = require("express");
 const router = express.Router();
+const propertyController = require("../controllers/property.controller.js");
 
 router.route("/")
-  .get(getProperties)
-  .post(createProperty);
+  .get(propertyController.getProperties)
+  .post(propertyController.createProperty);
 
 router.route("/search")
-  .get(searchProperties);
+  .get(propertyController.searchProperties);
 
 router.route("/filters")
-  .get(filterProperties);
+  .get(propertyController.filterProperties);
 
 router.route("/:id")
-  .get(getProperty)
-  .put(updateProperty)
-  .delete(deleteProperty);
+  .get(propertyController.getProperty)
+  .put(propertyController.updateProperty)
+  .delete(propertyController.deleteProperty);
 
 router.route("/:id/status")
-  .put(togglePropertyStatus);
+  .put(propertyController.togglePropertyStatus);
 
-export default router;
+module.exports = router;

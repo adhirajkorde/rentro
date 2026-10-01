@@ -1,4 +1,5 @@
-import mongoose, { model, models } from "mongoose";
+const mongoose = require("mongoose");
+const { model, models } = mongoose;
 
 const securityDepositSchema = new mongoose.Schema(
   {
@@ -50,11 +51,11 @@ const securityDepositSchema = new mongoose.Schema(
     },
   },
   { timestamps: true }
-});
+);
 
 // Indexes
 securityDepositSchema.index({ tenant: 1, status: 1 });
 securityDepositSchema.index({ property: 1, status: 1 });
 securityDepositSchema.index({ agreement: 1 });
 
-export default model("SecurityDeposit", securityDepositSchema);
+module.exports = model("SecurityDeposit", securityDepositSchema);
