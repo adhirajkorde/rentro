@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
 import dotenv from "dotenv";
+import { closeDatabase, getDatabase } from "./src/config/database.js";
 import User from "./src/models/User.model.js";
 import Property from "./src/models/Property.model.js";
 import Tenant from "./src/models/Tenant.model.js";
@@ -17,15 +17,10 @@ import PropertyMedia from "./src/models/PropertyMedia.model.js";
 
 dotenv.config();
 
-const DB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/rentora";
-
 async function seedDatabase() {
   try {
-    await mongoose.connect(DB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("✅ MongoDB connected for seeding");
+    getDatabase();
+    console.log("SQLite connected for seeding");
 
     // Clear existing data
     await Promise.all([
@@ -318,11 +313,11 @@ async function seedDatabase() {
     console.log("  Tenant: tenant@rentora.com / password123");
     console.log("\n⚠️  These are development/demo accounts. Never use in production.");
 
-    mongoose.disconnect();
+    closeDatabase();
     process.exit(0);
   } catch (error) {
     console.error("❌ Seeding error:", error);
-    mongoose.disconnect();
+    closeDatabase();
     process.exit(1);
   }
 }

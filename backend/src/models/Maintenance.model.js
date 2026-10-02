@@ -1,15 +1,15 @@
-import mongoose from "mongoose";
-const { model, models } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model, models } = sqlite;
 
-const maintenanceSchema = new mongoose.Schema(
+const maintenanceSchema = new sqlite.Schema(
   {
     tenant: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "Tenant",
       required: true,
     },
     property: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "Property",
       required: true,
     },

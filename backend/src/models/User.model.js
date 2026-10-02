@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
+import sqlite from "./sqliteSchema.js";
 import bcrypt from "bcryptjs";
 
-const userSchema = new mongoose.Schema(
+const userSchema = new sqlite.Schema(
   {
     fullName: {
       type: String,
@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["property-owner"],
+      enum: ["property-owner", "property-manager", "tenant", "super-admin"],
       default: "property-owner",
     },
     status: {
@@ -69,4 +69,4 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export default mongoose.model("User", userSchema);
+export default sqlite.model("User", userSchema);

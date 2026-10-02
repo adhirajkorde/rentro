@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
-const { model, models } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model, models } = sqlite;
 
-const agreementSignatureSchema = new mongoose.Schema(
+const agreementSignatureSchema = new sqlite.Schema(
   {
     agreement: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "RentalAgreement",
       required: true,
     },

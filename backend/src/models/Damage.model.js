@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
-const { model, models } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model, models } = sqlite;
 
-const damageSchema = new mongoose.Schema(
+const damageSchema = new sqlite.Schema(
   {
     inspection: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "Inspection",
       required: true,
     },

@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
-const { model } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model } = sqlite;
 
-const propertySchema = new mongoose.Schema(
+const propertySchema = new sqlite.Schema(
   {
     name: {
       type: String,
@@ -11,7 +11,7 @@ const propertySchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["house", "flat", "apartment", "shop", "office", "commercial", "other"],
+      enum: ["house", "flat", "apartment", "villa", "shop", "office", "commercial", "other"],
       required: [true, "Property type is required"],
     },
     description: {
@@ -98,12 +98,12 @@ const propertySchema = new mongoose.Schema(
       trim: true,
     },
     owner: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     propertyManager: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "User",
     },
     status: {

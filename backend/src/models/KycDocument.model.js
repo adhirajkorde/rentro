@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
-const { model, models } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model, models } = sqlite;
 
-const kycDocumentSchema = new mongoose.Schema(
+const kycDocumentSchema = new sqlite.Schema(
   {
     tenant: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "Tenant",
       required: true,
     },
@@ -41,7 +41,7 @@ const kycDocumentSchema = new mongoose.Schema(
       default: "pending",
     },
     verifiedBy: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "User",
     },
     verifiedAt: {

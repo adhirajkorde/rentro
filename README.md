@@ -1,10 +1,10 @@
 # Rentora
 
-Rentora is a rental property management project with an Express/MongoDB backend and a React/Vite frontend. It is under active development and is not production-ready.
+Rentora is a rental property management project with an Express backend using SQLite and a React/Vite frontend. It is under active development and is not production-ready.
 
 ## Project Structure
 
-- `backend/` - Express API, Mongoose models, route handlers, middleware, and seed script.
+- `backend/` - Express API, SQLite-backed models, route handlers, middleware, and seed script.
 - `frontend/` - React application built with Vite.
 
 The backend contains API areas for authentication, properties, tenants, rental agreements, rent records, payments, inspections, documents, and notifications.
@@ -12,7 +12,7 @@ The backend contains API areas for authentication, properties, tenants, rental a
 ## Requirements
 
 - Node.js and npm compatible with the versions required by the Vite 8 toolchain.
-- MongoDB, running locally or available through a connection URI.
+- No separate database server is required; the backend creates a local SQLite database file.
 
 ## Local Setup
 
@@ -24,7 +24,7 @@ npm install
 Copy-Item .env.example .env
 ```
 
-Edit `backend/.env` with your local MongoDB URI and unique secrets for JWT signing. Keep `.env` private and do not commit it. Cloudinary variables are only needed when configuring Cloudinary media storage.
+Set unique secrets for JWT signing in `backend/.env`. Keep `.env` private and do not commit it. The SQLite file defaults to `backend/data/rentora.sqlite`; set `SQLITE_DB_PATH` to choose a different path. Cloudinary variables are only needed when configuring Cloudinary media storage.
 
 Start the backend from the `backend/` directory:
 
@@ -48,7 +48,7 @@ Backend, run from `backend/`:
 
 - `npm run dev` - start with Nodemon.
 - `npm start` - start the API with Node.js.
-- `npm run seed` - run the seed script. Review `seed.js` and use demo data only in a development database.
+- `npm run seed` - create/reset the local SQLite database with demo data. Use it only for development data.
 
 Frontend, run from `frontend/`:
 
@@ -59,13 +59,13 @@ Frontend, run from `frontend/`:
 
 ## Environment Variables
 
-The example backend configuration is in [`backend/.env.example`](backend/.env.example). It includes MongoDB, JWT, server, CORS, rate-limit, and optional Cloudinary settings. Replace all placeholder secrets before using the application beyond local development.
+The example backend configuration is in [`backend/.env.example`](backend/.env.example). It includes SQLite, JWT, server, CORS, rate-limit, and optional Cloudinary settings. Replace all placeholder secrets before using the application beyond local development.
 
 ## Current Development Status
 
 The repository still has startup and build issues that must be resolved before the application can be used reliably:
 
-- The backend imports an audit route that is currently missing. Its ESM configuration also conflicts with CommonJS route and model files.
+- The backend currently fails at startup because `agreement.routes.js` imports `generateAgreementPdf` from a controller that does not export it.
 - The frontend production build currently fails while loading the PostCSS configuration, and frontend lint reports errors.
 - The active Vite entrypoint currently renders the starter app rather than the separate TypeScript router and pages.
 - Backend route files currently do not apply the authentication/authorization middleware. Do not expose the API to untrusted users or deploy it as-is.

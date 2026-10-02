@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import AuditLog from "../models/AuditLog.model.js";
 
 export const logAction = async (req, res, next) => {

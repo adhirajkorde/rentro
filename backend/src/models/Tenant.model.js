@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
-const { model } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model } = sqlite;
 
-const tenantSchema = new mongoose.Schema(
+const tenantSchema = new sqlite.Schema(
   {
     fullName: {
       type: String,
@@ -54,13 +54,13 @@ const tenantSchema = new mongoose.Schema(
       type: Date,
     },
     currentProperty: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "Property",
     },
     previousRentalHistory: [
       {
         property: {
-          type: mongoose.Schema.Types.ObjectId,
+          type: sqlite.Schema.Types.ObjectId,
           ref: "Property",
         },
         duration: {

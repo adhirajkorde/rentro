@@ -1,20 +1,20 @@
-import mongoose from "mongoose";
-const { model, models } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model, models } = sqlite;
 
-const securityDepositSchema = new mongoose.Schema(
+const securityDepositSchema = new sqlite.Schema(
   {
     tenant: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "Tenant",
       required: true,
     },
     property: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "Property",
       required: true,
     },
     agreement: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "RentalAgreement",
       required: true,
     },

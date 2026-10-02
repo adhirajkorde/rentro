@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
-const { model, models } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model, models } = sqlite;
 
-const notificationSchema = new mongoose.Schema(
+const notificationSchema = new sqlite.Schema(
   {
     recipient: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
@@ -39,7 +39,7 @@ const notificationSchema = new mongoose.Schema(
       ],
     },
     relatedResourceId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
     },
     isRead: {
       type: Boolean,

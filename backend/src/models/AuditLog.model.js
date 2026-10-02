@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
-const { model, models } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model, models } = sqlite;
 
-const auditLogSchema = new mongoose.Schema(
+const auditLogSchema = new sqlite.Schema(
   {
     user: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "User",
     },
     action: {
@@ -30,13 +30,13 @@ const auditLogSchema = new mongoose.Schema(
       required: [true, "Resource is required"],
     },
     resourceId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
     },
     previousData: {
-      type: mongoose.Schema.Types.Mixed,
+      type: sqlite.Schema.Types.Mixed,
     },
     newData: {
-      type: mongoose.Schema.Types.Mixed,
+      type: sqlite.Schema.Types.Mixed,
     },
     ipAddress: {
       type: String,

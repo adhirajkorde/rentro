@@ -1,15 +1,15 @@
-import mongoose from "mongoose";
-const { model, models } = mongoose;
+import sqlite from "./sqliteSchema.js";
+const { model, models } = sqlite;
 
-const policeVerificationSchema = new mongoose.Schema(
+const policeVerificationSchema = new sqlite.Schema(
   {
     tenant: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "Tenant",
       required: true,
     },
     property: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "Property",
     },
     referenceNumber: {
@@ -38,7 +38,7 @@ const policeVerificationSchema = new mongoose.Schema(
       type: String,
     },
     verifiedBy: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: sqlite.Schema.Types.ObjectId,
       ref: "User",
     },
   },

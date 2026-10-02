@@ -3,10 +3,9 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import mongoSanitize from "express-mongo-sanitize";
 import xss from "xss-clean";
 import compression from "compression";
-import mongoose from "mongoose";
+import { getDatabase } from "./src/config/database.js";
 
 import authRoutes from "./src/routes/auth.routes.js";
 import propertyRoutes from "./src/routes/property.routes.js";
@@ -41,7 +40,6 @@ app.use(limiter);
 
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-app.use(mongoSanitize());
 app.use(xss());
 app.use(compression());
 
@@ -64,15 +62,8 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
 
-mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/rentora")
-  .then(() => {
-    console.log("📊 MongoDB connected successfully");
-  })
-  .catch((err) => {
-    console.error("🚨 MongoDB connection error:", err);
-    process.exit(1);
-  });
+getDatabase();
+console.log("SQLite connected successfully");
 
 const server = app.listen(PORT, () => {
   console.log(`🏢 Rentora Backend running in ${process.env.NODE_ENV} mode on port ${PORT}`);
