@@ -104,7 +104,7 @@ const Sidebar = () => {
                 href="/dashboard"
                 className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-rentora-light transition-colors"
                 onClick={() => navigate("/dashboard")}
-                >
+              >
                 <svg
                   width="20"
                   height="20"
@@ -128,7 +128,7 @@ const Sidebar = () => {
                 href="/properties"
                 className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-rentora-light transition-colors"
                 onClick={() => navigate("/properties")}
-                >
+              >
                 <svg
                   width="20"
                   height="20"
@@ -150,7 +150,7 @@ const Sidebar = () => {
                 href="/tenants"
                 className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-rentora-light transition-colors"
                 onClick={() => navigate("/tenants")}
-                >
+              >
                 <svg
                   width="20"
                   height="20"

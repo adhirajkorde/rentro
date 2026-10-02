@@ -5,6 +5,7 @@ import {
   getPayment,
   createPayment,
   getTenantPayments,
+  generatePaymentReceipt,
 } from "../controllers/payment.controller.js";
 
 const router = express.Router();
@@ -21,5 +22,8 @@ router.route("/")
 
 router.route("/:id")
   .get(getPayment);
+
+router.route("/:id/receipt")
+  .get(generatePaymentReceipt);
 
 export default router;

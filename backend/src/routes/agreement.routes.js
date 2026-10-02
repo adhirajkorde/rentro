@@ -7,6 +7,7 @@ import {
   updateAgreement,
   deleteAgreement,
   toggleAgreementStatus,
+  generateAgreementPdf,
 } from "../controllers/agreement.controller.js";
 
 const router = express.Router();
@@ -24,5 +25,8 @@ router.route("/:id")
 
 router.route("/:id/status")
   .put(toggleAgreementStatus);
+
+router.route("/:id/pdf")
+  .get(generateAgreementPdf);
 
 export default router;
