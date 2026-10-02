@@ -2,8 +2,8 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// Ensure uploads directory exists
-const uploadDir = path.join("backend", "uploads");
+// Ensure root uploads directory exists
+const uploadDir = path.resolve(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -13,32 +13,31 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
-    );
+    const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e6);
+    cb(null, `${uniqueSuffix}_${sanitized}`);
   },
 });
 
 const fileFilter = (req, file, cb) => {
-  // Accept images and videos
-  const allowedTypes = /jpeg|jpg|png|gif|mp4|mov|avi/;
-  const mimeType = allowedTypes.test(file.mimetype);
-  const extname = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase()
-  );
+  // Allow images, PDFs, videos
+  const allowedExts = /\.(jpeg|jpg|png|webp|gif|pdf|mp4|mov|avi|webm)$/i;
+  const isExtValid = allowedExts.test(file.originalname);
+  const isMimeValid =
+    file.mimetype.startsWith("image/") ||
+    file.mimetype.startsWith("video/") ||
+    file.mimetype === "application/pdf";
 
-  if (mimeType && extname) {
+  if (isExtValid && isMimeValid) {
     cb(null, true);
   } else {
-    cb(new Error("Only images and videos are allowed"), false);
+    cb(new Error("Only images (PNG, JPG, WebP, GIF), PDFs, and videos (MP4, WebM) are allowed"), false);
   }
 };
 
-// Limit file size to 5MB
+// Limit file size to 25MB
 const limits = {
-  fileSize: 5 * 1024 * 1024,
+  fileSize: 25 * 1024 * 1024,
 };
 
 const upload = multer({

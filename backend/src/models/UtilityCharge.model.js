@@ -3,25 +3,48 @@ const { model, models } = sqlite;
 
 const utilityChargeSchema = new sqlite.Schema(
   {
-    tenant: {
+    owner: {
       type: sqlite.Schema.Types.ObjectId,
-      ref: "Tenant",
-      required: true,
+      ref: "User",
     },
     property: {
       type: sqlite.Schema.Types.ObjectId,
       ref: "Property",
       required: true,
     },
+    tenant: {
+      type: sqlite.Schema.Types.ObjectId,
+      ref: "Tenant",
+    },
+    utilityType: {
+      type: String,
+      enum: ["electricity", "water", "gas", "internet", "other"],
+      required: [true, "Utility type is required"],
+    },
     billingPeriod: {
       type: String,
       required: [true, "Billing period is required"],
       trim: true,
     },
-    utilityType: {
+    meterNumber: {
       type: String,
-      enum: ["electricity", "water", "internet", "other"],
-      required: [true, "Utility type is required"],
+      trim: true,
+    },
+    previousReading: {
+      type: Number,
+      default: 0,
+    },
+    currentReading: {
+      type: Number,
+      default: 0,
+    },
+    unitsConsumed: {
+      type: Number,
+      default: 0,
+    },
+    ratePerUnit: {
+      type: Number,
+      default: 0,
     },
     amount: {
       type: Number,
@@ -30,10 +53,12 @@ const utilityChargeSchema = new sqlite.Schema(
     },
     dueDate: {
       type: Date,
-      required: [true, "Due date is required"],
     },
     paidDate: {
       type: Date,
+    },
+    meterPhoto: {
+      type: String,
     },
     status: {
       type: String,

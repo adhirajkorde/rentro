@@ -5,20 +5,26 @@ import {
   getInspection,
   createInspection,
   updateInspection,
-  getPropertyInspections,
+  addInspectionDamage,
+  compareInspections,
 } from "../controllers/inspection.controller.js";
+import upload from "../utils/multer.config.js";
 
 const router = express.Router();
-router.use(protect, authorize("property-owner"));
+router.use(protect, authorize("property-owner", "property-manager", "super-admin"));
 
 router.route("/")
-  .get(getInspections);
+  .get(getInspections)
+  .post(upload.array("media", 10), createInspection);
 
-router.route("/property/:propertyId")
-  .get(getPropertyInspections);
+router.route("/compare/:propertyId")
+  .get(compareInspections);
 
 router.route("/:id")
   .get(getInspection)
-  .put(updateInspection);
+  .put(upload.array("media", 10), updateInspection);
+
+router.route("/:id/damages")
+  .post(addInspectionDamage);
 
 export default router;

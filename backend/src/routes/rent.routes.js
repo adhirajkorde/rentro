@@ -9,7 +9,7 @@ import {
 } from "../controllers/rent.controller.js";
 
 const router = express.Router();
-router.use(protect, authorize("property-owner"));
+router.use(protect, authorize("property-owner", "property-manager", "super-admin"));
 
 router.route("/")
   .get(getRentRecords);

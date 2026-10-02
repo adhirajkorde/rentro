@@ -3,24 +3,26 @@ const { model, models } = sqlite;
 
 const maintenanceSchema = new sqlite.Schema(
   {
-    tenant: {
+    owner: {
       type: sqlite.Schema.Types.ObjectId,
-      ref: "Tenant",
-      required: true,
+      ref: "User",
     },
     property: {
       type: sqlite.Schema.Types.ObjectId,
       ref: "Property",
       required: true,
     },
-    billingPeriod: {
+    tenant: {
+      type: sqlite.Schema.Types.ObjectId,
+      ref: "Tenant",
+    },
+    title: {
       type: String,
-      required: [true, "Billing period is required"],
       trim: true,
     },
     category: {
       type: String,
-      enum: ["maintenance", "electricity", "water", "internet", "other"],
+      enum: ["plumbing", "electrical", "painting", "cleaning", "repair", "appliance", "maintenance", "renovation", "other"],
       required: [true, "Category is required"],
     },
     amount: {
@@ -28,17 +30,25 @@ const maintenanceSchema = new sqlite.Schema(
       min: [0, "Amount cannot be negative"],
       required: [true, "Amount is required"],
     },
-    dueDate: {
+    expenseDate: {
       type: Date,
-      required: [true, "Due date is required"],
+      default: Date.now,
     },
-    paidDate: {
-      type: Date,
+    description: {
+      type: String,
+      trim: true,
+    },
+    vendorName: {
+      type: String,
+      trim: true,
+    },
+    receiptUrl: {
+      type: String,
     },
     status: {
       type: String,
-      enum: ["pending", "paid", "overdue", "waived"],
-      default: "pending",
+      enum: ["pending", "paid", "in-progress", "cancelled"],
+      default: "paid",
     },
     paymentMethod: {
       type: String,
@@ -53,8 +63,7 @@ const maintenanceSchema = new sqlite.Schema(
 );
 
 // Indexes
-maintenanceSchema.index({ tenant: 1, billingPeriod: 1 });
-maintenanceSchema.index({ property: 1, billingPeriod: 1 });
-maintenanceSchema.index({ category: 1, status: 1 });
+maintenanceSchema.index({ property: 1, category: 1 });
+maintenanceSchema.index({ owner: 1, status: 1 });
 
 export default model("Maintenance", maintenanceSchema);

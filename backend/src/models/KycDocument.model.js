@@ -3,19 +3,33 @@ const { model, models } = sqlite;
 
 const kycDocumentSchema = new sqlite.Schema(
   {
+    owner: {
+      type: sqlite.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    property: {
+      type: sqlite.Schema.Types.ObjectId,
+      ref: "Property",
+    },
     tenant: {
       type: sqlite.Schema.Types.ObjectId,
       ref: "Tenant",
-      required: true,
+    },
+    title: {
+      type: String,
+      trim: true,
+    },
+    fileName: {
+      type: String,
+      trim: true,
     },
     documentType: {
       type: String,
-      enum: ["aadhaar", "pan", "passport", "driving-license", "other"],
+      enum: ["aadhaar", "pan", "passport", "driving-license", "agreement", "police-verification", "receipt", "other"],
       required: [true, "Document type is required"],
     },
     documentNumber: {
       type: String,
-      required: [true, "Document number is required"],
       select: false,
     },
     documentNumberMasked: {

@@ -12,10 +12,11 @@ import {
 
 const router = express.Router();
 // Tenant routes - authenticated owner can manage tenant records
-router.use(protect, authorize("property-owner"));
+router.use(protect, authorize("property-owner", "property-manager", "super-admin"));
 
 router.route("/")
-  .get(getTenants);
+  .get(getTenants)
+  .post(createTenant);
 
 router.route("/:id")
   .get(getTenant)

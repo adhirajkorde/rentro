@@ -3,6 +3,10 @@ const { model, models } = sqlite;
 
 const inspectionSchema = new sqlite.Schema(
   {
+    owner: {
+      type: sqlite.Schema.Types.ObjectId,
+      ref: "User",
+    },
     property: {
       type: sqlite.Schema.Types.ObjectId,
       ref: "Property",
@@ -11,7 +15,6 @@ const inspectionSchema = new sqlite.Schema(
     tenant: {
       type: sqlite.Schema.Types.ObjectId,
       ref: "Tenant",
-      required: true,
     },
     inspector: {
       type: sqlite.Schema.Types.ObjectId,

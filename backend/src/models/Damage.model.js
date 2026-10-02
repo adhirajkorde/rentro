@@ -8,6 +8,17 @@ const damageSchema = new sqlite.Schema(
       ref: "Inspection",
       required: true,
     },
+    property: {
+      type: sqlite.Schema.Types.ObjectId,
+      ref: "Property",
+    },
+    tenant: {
+      type: sqlite.Schema.Types.ObjectId,
+      ref: "Tenant",
+    },
+    photoUrl: {
+      type: String,
+    },
     item: {
       type: String,
       required: [true, "Damage item is required"],

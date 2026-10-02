@@ -1,8 +1,10 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
 
+const JWT_SECRET = process.env.JWT_SECRET || "rentora-super-secret-owner-jwt-key-2026-prod";
+
 const signToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, {
+  jwt.sign({ id }, JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "30d",
   });
 
@@ -27,13 +29,18 @@ export const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: "User already exists with this email" });
     }
 
-    const user = await User.create({ fullName, email, password, role: "tenant" });
+    const user = await User.create({
+      fullName,
+      email,
+      password,
+      role: req.body.role || "property-owner",
+    });
 
     if (req.logAction) req.logAction("user-created", "user", user._id);
 
     res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message: "Owner registered successfully",
       data: { token: signToken(user._id), user: userPayload(user) },
     });
   } catch (error) {
@@ -201,3 +208,18 @@ export const getMe = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { fullName, phone, address, profileImage } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { fullName, phone, address, profileImage },
+      { new: true, runValidators: true }
+    );
+    res.status(200).json({ success: true, message: "Profile updated successfully", data: userPayload(user) });
+  } catch (error) {
+    next(error);
+  }
+};
+

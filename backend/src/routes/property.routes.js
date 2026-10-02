@@ -3,7 +3,7 @@ import * as propertyController from "../controllers/property.controller.js";
 import { protect, authorize } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
-router.use(protect, authorize("property-owner"));
+router.use(protect, authorize("property-owner", "property-manager", "super-admin"));
 
 router.route("/")
   .get(propertyController.getProperties)

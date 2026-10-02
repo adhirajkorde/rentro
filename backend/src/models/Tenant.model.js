@@ -72,6 +72,17 @@ const tenantSchema = new sqlite.Schema(
         },
       },
     ],
+    owner: {
+      type: sqlite.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    dateOfBirth: {
+      type: Date,
+    },
+    notes: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
       enum: ["active", "inactive", "archived"],

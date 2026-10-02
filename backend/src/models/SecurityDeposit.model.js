@@ -3,6 +3,10 @@ const { model, models } = sqlite;
 
 const securityDepositSchema = new sqlite.Schema(
   {
+    owner: {
+      type: sqlite.Schema.Types.ObjectId,
+      ref: "User",
+    },
     tenant: {
       type: sqlite.Schema.Types.ObjectId,
       ref: "Tenant",
@@ -16,7 +20,6 @@ const securityDepositSchema = new sqlite.Schema(
     agreement: {
       type: sqlite.Schema.Types.ObjectId,
       ref: "RentalAgreement",
-      required: true,
     },
     depositAmount: {
       type: Number,
@@ -44,10 +47,14 @@ const securityDepositSchema = new sqlite.Schema(
     refundDate: {
       type: Date,
     },
+    notes: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
-      enum: ["pending", "partial", "full", "disputed"],
-      default: "pending",
+      enum: ["received", "held", "partially_refunded", "refunded", "pending", "disputed"],
+      default: "held",
     },
   },
   { timestamps: true }

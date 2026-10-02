@@ -6,24 +6,25 @@ import {
   createDocument,
   updateDocument,
   deleteDocument,
+  getPoliceVerifications,
+  createPoliceVerification,
 } from "../controllers/document.controller.js";
+import upload from "../utils/multer.config.js";
 
 const router = express.Router();
-router.use(protect, authorize("property-owner"));
+router.use(protect, authorize("property-owner", "property-manager", "super-admin"));
 
 router.route("/")
-  .get(getDocuments);
+  .get(getDocuments)
+  .post(upload.single("file"), createDocument);
+
+router.route("/police-verification")
+  .get(getPoliceVerifications)
+  .post(createPoliceVerification);
 
 router.route("/:id")
-  .get(getDocument);
-
-router.route("/")
-  .post(createDocument);
-
-router.route("/:id")
-  .put(updateDocument);
-
-router.route("/:id")
+  .get(getDocument)
+  .put(upload.single("file"), updateDocument)
   .delete(deleteDocument);
 
 export default router;

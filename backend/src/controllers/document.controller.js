@@ -1,48 +1,67 @@
 import KycDocument from "../models/KycDocument.model.js";
 import PoliceVerification from "../models/PoliceVerification.model.js";
-import ErrorResponse from "../utils/error.util.js";
+import Tenant from "../models/Tenant.model.js";
+import Property from "../models/Property.model.js";
+
+const maskDocumentNumber = (documentNumber) => {
+  if (!documentNumber) return "";
+  const num = documentNumber.replace(/\s+/g, "");
+  if (num.length >= 4) {
+    const last4 = num.slice(-4);
+    if (num.length >= 12) return `XXXX XXXX ${last4}`;
+    if (num.length >= 10) return `*****${last4}`;
+    return `XXXX${last4}`;
+  }
+  return num;
+};
 
 export const getDocuments = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 100;
     const skip = (page - 1) * limit;
 
     const filter = {};
-
-    if (req.query.tenant) {
-      filter.tenant = req.query.tenant;
+    if (req.user.role !== "super-admin") {
+      filter.owner = req.user._id;
     }
 
-    if (req.query.type) {
-      filter.documentType = req.query.type;
-    }
+    if (req.query.tenant) filter.tenant = req.query.tenant;
+    if (req.query.property) filter.property = req.query.property;
+    if (req.query.type) filter.documentType = req.query.type;
+    if (req.query.status) filter.verificationStatus = req.query.status;
 
-    if (req.query.status) {
-      filter.verificationStatus = req.query.status;
-    }
+    const [documents, total] = await Promise.all([
+      KycDocument.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      KycDocument.countDocuments(filter),
+    ]);
 
-    const documents = await KycDocument.find(filter)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const total = await KycDocument.countDocuments(filter);
+    const populated = await Promise.all(
+      documents.map(async (doc) => {
+        const dObj = doc.toObject ? doc.toObject() : { ...doc };
+        const [tenantDetails, propertyDetails] = await Promise.all([
+          doc.tenant ? Tenant.findById(doc.tenant) : null,
+          doc.property ? Property.findById(doc.property) : null,
+        ]);
+        return {
+          ...dObj,
+          tenantDetails,
+          propertyDetails,
+        };
+      })
+    );
 
     res.status(200).json({
       success: true,
-      count: documents.length,
+      count: populated.length,
       total,
       page,
       pages: Math.ceil(total / limit),
-      data: documents,
+      data: populated,
     });
   } catch (error) {
     console.error("Get documents error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching documents",
-    });
+    res.status(500).json({ success: false, message: "Server error while fetching documents" });
   }
 };
 
@@ -51,112 +70,124 @@ export const getDocument = async (req, res) => {
     const document = await KycDocument.findById(req.params.id);
 
     if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: "Document not found",
-      });
+      return res.status(404).json({ success: false, message: "Document not found" });
     }
 
-    // Security: Only the tenant, property owner, or super-admin can view KYC
-    // For now, we return the masked document number
+    if (req.user.role !== "super-admin" && document.owner?.toString() !== req.user._id.toString()) {
+      return res.status(404).json({ success: false, message: "Document not found" });
+    }
+
+    const [tenantDetails, propertyDetails] = await Promise.all([
+      document.tenant ? Tenant.findById(document.tenant) : null,
+      document.property ? Property.findById(document.property) : null,
+    ]);
+
     res.status(200).json({
       success: true,
-      data: document,
+      data: {
+        ...document.toObject(),
+        tenantDetails,
+        propertyDetails,
+      },
     });
   } catch (error) {
     console.error("Get document error:", error);
-    if (error.kind === "ObjectId" || error.name === "CastError") {
-      return res.status(404).json({
-        success: false,
-        message: "Document not found",
-      });
-    }
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching document",
-    });
+    res.status(500).json({ success: false, message: "Server error while fetching document" });
   }
 };
 
 export const createDocument = async (req, res) => {
   try {
-    const {
+    let {
       tenant,
+      property,
       documentType,
+      title,
+      fileName,
       documentNumber,
       fileUrl,
       publicId,
       expiryDate,
+      verificationStatus,
+      notes,
     } = req.body;
 
-    if (!tenant || !documentType || !documentNumber || !fileUrl) {
+    if (req.file) {
+      fileUrl = `/uploads/${req.file.filename}`;
+      fileName = req.file.originalname;
+      publicId = req.file.filename;
+    }
+
+    if (!documentType || (!fileUrl && !req.file)) {
       return res.status(400).json({
         success: false,
-        message: "Tenant, document type, document number, and file URL are required",
+        message: "Document type and file are required",
       });
     }
 
+    // Auto-derive property from tenant if not passed
+    if (!property && tenant) {
+      const t = await Tenant.findById(tenant);
+      if (t?.currentProperty) property = t.currentProperty;
+    }
+
     const document = await KycDocument.create({
-      tenant,
-      documentType,
-      documentNumber,
+      owner: req.user._id,
+      tenant: tenant || null,
+      property: property || null,
+      title: title ? String(title).trim() : `${documentType.toUpperCase()} Document`,
+      fileName: fileName || "Document",
+      documentType: String(documentType).toLowerCase(),
+      documentNumber: documentNumber ? String(documentNumber).trim() : "",
       documentNumberMasked: maskDocumentNumber(documentNumber),
       fileUrl,
       publicId,
-      expiryDate,
-      verificationStatus: "pending",
+      expiryDate: expiryDate ? new Date(expiryDate) : null,
+      verificationStatus: verificationStatus || "verified",
+      notes: notes ? String(notes).trim() : "",
     });
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("document-created", "kyc-document", document._id);
-    }
+    if (req.logAction) req.logAction("document-created", "kyc-document", document._id);
+
+    const [tenantDetails, propertyDetails] = await Promise.all([
+      document.tenant ? Tenant.findById(document.tenant) : null,
+      document.property ? Property.findById(document.property) : null,
+    ]);
 
     res.status(201).json({
       success: true,
-      message: "Document created successfully",
-      data: document,
+      message: "Document uploaded successfully",
+      data: {
+        ...document.toObject(),
+        tenantDetails,
+        propertyDetails,
+      },
     });
   } catch (error) {
     console.error("Create document error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while creating document",
-    });
+    res.status(500).json({ success: false, message: error.message || "Server error while creating document" });
   }
 };
 
 export const updateDocument = async (req, res) => {
   try {
-    const {
-      verificationStatus,
-      verifiedBy,
-      verifiedAt,
-      notes,
-    } = req.body;
+    const existing = await KycDocument.findById(req.params.id);
+    if (!existing || (req.user.role !== "super-admin" && existing.owner?.toString() !== req.user._id.toString())) {
+      return res.status(404).json({ success: false, message: "Document not found" });
+    }
+
+    const { owner: _owner, ...updateData } = req.body;
+    if (updateData.documentNumber) {
+      updateData.documentNumberMasked = maskDocumentNumber(updateData.documentNumber);
+    }
 
     const document = await KycDocument.findByIdAndUpdate(
       req.params.id,
-      {
-        ...req.body,
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
+      updateData,
+      { new: true, runValidators: true }
     );
 
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: "Document not found",
-      });
-    }
-
-    // Log action
-    if (req.logAction) {
-      req.logAction("document-updated", "kyc-document", document._id);
-    }
+    if (req.logAction) req.logAction("document-updated", "kyc-document", document._id);
 
     res.status(200).json({
       success: true,
@@ -165,99 +196,43 @@ export const updateDocument = async (req, res) => {
     });
   } catch (error) {
     console.error("Update document error:", error);
-    if (error.kind === "ObjectId" || error.name === "CastError") {
-      return res.status(404).json({
-        success: false,
-      });
-    }
-    res.status(500).json({
-      success: false,
-      message: "Server error while updating document",
-    });
+    res.status(500).json({ success: false, message: "Server error while updating document" });
   }
 };
 
 export const deleteDocument = async (req, res) => {
   try {
-    const document = await KycDocument.findByIdAndDelete(req.params.id);
-
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: "Document not found",
-      });
+    const existing = await KycDocument.findById(req.params.id);
+    if (!existing || (req.user.role !== "super-admin" && existing.owner?.toString() !== req.user._id.toString())) {
+      return res.status(404).json({ success: false, message: "Document not found" });
     }
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("document-deleted", "kyc-document", document._id);
-    }
+    await KycDocument.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({
-      success: true,
-      message: "Document deleted successfully",
-    });
+    if (req.logAction) req.logAction("document-deleted", "kyc-document", req.params.id);
+
+    res.status(200).json({ success: true, message: "Document deleted successfully" });
   } catch (error) {
     console.error("Delete document error:", error);
-    if (error.kind === "ObjectId" || error.name === "CastError") {
-      return res.status(404).json({
-        success: false,
-        message: "Document not found",
-      });
-    }
-    res.status(500).json({
-      success: false,
-      message: "Server error while deleting document",
-    });
+    res.status(500).json({ success: false, message: "Server error while deleting document" });
   }
 };
-
-// Helper function to mask document numbers
-function maskDocumentNumber(documentNumber) {
-  if (!documentNumber) return "";
-
-  const num = documentNumber.replace(/\s+/g, "");
-  if (num.length >= 4) {
-    const last4 = num.slice(-4);
-    if (num.length >= 12) {
-      // Aadhaar: XXXX XXXX 1234
-      return `XXXX XXXX ${last4}`;
-    } else if (num.length >= 10) {
-      // PAN or similar
-      return `*****${last4}`;
-    } else {
-      return `XXXX${last4}`;
-    }
-  }
-  return num;
-}
 
 export const getPoliceVerifications = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 100;
     const skip = (page - 1) * limit;
 
     const filter = {};
+    if (req.query.tenant) filter.tenant = req.query.tenant;
+    if (req.query.property) filter.property = req.query.property;
+    if (req.query.status) filter.status = req.query.status;
 
-    if (req.query.tenant) {
-      filter.tenant = req.query.tenant;
-    }
-
-    if (req.query.property) {
-      filter.property = req.query.property;
-    }
-
-    if (req.query.status) {
-      filter.status = req.query.status;
-    }
-
-    const verifications = await PoliceVerification.find(filter)
-      .skip(skip)
-      .limit(limit)
-      .sort({ applicationDate: -1 });
-
-    const total = await PoliceVerification.countDocuments(filter);
+    const [verifications, total] = await Promise.all([
+      PoliceVerification.find(filter).skip(skip).limit(limit).sort({ applicationDate: -1 }),
+      PoliceVerification.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -269,63 +244,36 @@ export const getPoliceVerifications = async (req, res) => {
     });
   } catch (error) {
     console.error("Get police verifications error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching police verifications",
-    });
+    res.status(500).json({ success: false, message: "Server error while fetching police verifications" });
   }
 };
 
 export const createPoliceVerification = async (req, res) => {
   try {
-    const {
-      tenant,
-      property,
-      referenceNumber,
-    } = req.body;
+    const { tenant, property, referenceNumber, notes, status, applicationDate } = req.body;
 
     if (!tenant || !referenceNumber) {
-      return res.status(400).json({
-        success: false,
-        message: "Tenant and reference number are required",
-      });
-    }
-
-    // Check if reference number already exists
-    const existingVerification = await PoliceVerification.findOne({
-      referenceNumber,
-    });
-
-    if (existingVerification) {
-      return res.status(409).json({
-        success: false,
-        message: "A verification already exists with this reference number",
-      });
+      return res.status(400).json({ success: false, message: "Tenant and reference number are required" });
     }
 
     const verification = await PoliceVerification.create({
       tenant,
       property,
       referenceNumber,
-      status: "pending",
-      applicationDate: new Date(),
+      status: status || "verified",
+      notes: notes || "Verification completed successfully",
+      applicationDate: applicationDate ? new Date(applicationDate) : new Date(),
     });
 
-    // Log action
-    if (req.logAction) {
-      req.logAction("police-verification-created", "police-verification", verification._id);
-    }
+    if (req.logAction) req.logAction("police-verification-created", "police-verification", verification._id);
 
     res.status(201).json({
       success: true,
-      message: "Police verification created successfully",
+      message: "Police verification recorded successfully",
       data: verification,
     });
   } catch (error) {
     console.error("Create police verification error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while creating police verification",
-    });
+    res.status(500).json({ success: false, message: error.message || "Server error while creating police verification" });
   }
 };
