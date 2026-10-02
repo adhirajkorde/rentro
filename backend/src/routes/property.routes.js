@@ -1,9 +1,9 @@
 import express from "express";
 import * as propertyController from "../controllers/property.controller.js";
-import { protect } from "../middleware/auth.middleware.js";
+import { protect, authorize } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
-router.use(protect);
+router.use(protect, authorize("property-owner"));
 
 router.route("/")
   .get(propertyController.getProperties)

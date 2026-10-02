@@ -1,5 +1,5 @@
 import express from "express";
-import { protect } from "../middleware/auth.middleware.js";
+import { protect, authorize } from "../middleware/auth.middleware.js";
 import {
   getAgreements,
   getAgreement,
@@ -11,7 +11,7 @@ import {
 } from "../controllers/agreement.controller.js";
 
 const router = express.Router();
-router.use(protect);
+router.use(protect, authorize("property-owner"));
 
 router.route("/")
   .get(getAgreements);

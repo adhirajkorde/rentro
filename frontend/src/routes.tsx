@@ -1,16 +1,17 @@
 import { createBrowserRouter } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Auth/Login";
-import Register from "./pages/Auth/Register";
 import Dashboard from "./pages/Dashboard";
 import Properties from "./pages/Properties";
-import Tenants from "./pages/Tenants";
 import Agreements from "./pages/Agreements";
 import Rent from "./pages/Rent";
 import Inspections from "./pages/Inspections";
 import Documents from "./pages/Documents";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
+import SecurityDeposits from "./pages/SecurityDeposits";
+
+// Removed: Tenants, Register (owner-only app)
 
 export default createBrowserRouter({
   routes: [
@@ -23,20 +24,12 @@ export default createBrowserRouter({
       element: <Login />,
     },
     {
-      path: "/auth/register",
-      element: <Register />,
-    },
-    {
       path: "/dashboard",
       element: <Dashboard />,
     },
     {
       path: "/properties",
       element: <Properties />,
-    },
-    {
-      path: "/tenants",
-      element: <Tenants />,
     },
     {
       path: "/agreements",
@@ -61,6 +54,10 @@ export default createBrowserRouter({
     {
       path: "/profile",
       element: <Profile />,
+    },
+    {
+      path: "/security-deposits",
+      element: <SecurityDeposits />,
     },
   ],
 });

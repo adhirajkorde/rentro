@@ -1,10 +1,10 @@
 import express from "express";
+import { protect, authorize } from "../middleware/auth.middleware.js";
 import AuditLog from "../models/AuditLog.model.js";
-import { authorize, protect } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-router.get("/", protect, authorize("super-admin"), async (req, res, next) => {
+router.get("/", protect, authorize("property-owner"), async (req, res, next) => {
   try {
     const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 20, 1), 100);

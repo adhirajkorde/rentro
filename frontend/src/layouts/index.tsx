@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { logout } from "../features/auth/authSlice";
 
 const LoginLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -24,7 +23,9 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   }, [isAuthenticated, navigate]);
 
   if (!isAuthenticated) {
-    return <p className="text-center py-12">Please login to access the dashboard</p>;
+    return (
+      <p className="text-center py-12">Please login to access the dashboard</p>
+    );
   }
 
   return (
@@ -45,7 +46,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
+    // logout dispatch would go here
     navigate("/auth/login");
   };
 
@@ -72,10 +73,16 @@ const Navbar = () => {
             Properties
           </a>
           <a
-            href="/tenants"
+            href="/agreements"
             className="text-rentora-muted hover:text-rentora-accent transition-colors"
           >
-            Tenants
+            Agreements
+          </a>
+          <a
+            href="/rent"
+            className="text-rentora-muted hover:text-rentora-accent transition-colors"
+          >
+            Rent & Payments
           </a>
           <button onClick={handleLogout} className="text-sm text-rentora-accent font-medium">
             Logout
@@ -87,8 +94,6 @@ const Navbar = () => {
 };
 
 const Sidebar = () => {
-  const navigate = useNavigate();
-
   return (
     <aside
       className="w-64 bg-rentora-card border-r border-rentora-flex-shrink-0"
@@ -147,9 +152,9 @@ const Sidebar = () => {
             </li>
             <li>
               <a
-                href="/tenants"
+                href="/agreements"
                 className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-rentora-light transition-colors"
-                onClick={() => navigate("/tenants")}
+                onClick={() => navigate("/agreements")}
               >
                 <svg
                   width="20"
@@ -161,16 +166,28 @@ const Sidebar = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <circle cx="5" cy="5" r="3" />
-                  <circle cx="19" cy="5" r="3" />
-                  <circle cx="5" cy="19" r="3" />
-                  <circle cx="19" cy="19" r="3" />
-                  <line x1="12" y1="1" x2="12" y2="3" />
-                  <line x1="18" y1="1" x2="18" y2="3" />
-                  <line x1="6" y1="18" x2="6" y2="21" />
-                  <line x1="14" y1="18" x2="14" y2="21" />
-                </svg>
-                <span className="ml-3">Tenants</span>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2" /><path d="M14 2v2l6 6v6h-4l-2 4l-4-4l-2 4L14 22l4-4h6a2 2 0 0 0 2-2v-6.3l-.5-3.4L18 9l-2-2.3" /></svg>
+                <span className="ml-3">Agreements</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="/rent"
+                className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-rentora-light transition-colors"
+                onClick={() => navigate("/rent")}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2" /><path d="M14 2v2l6 6v6h-4l-2 4l-4-4l-2 4L14 22l4-4h6a2 2 0 0 0 2-2v-6.3l-.5-3.4L18 9l-2-2.3" /></svg>
+                <span className="ml-3">Rent & Payments</span>
               </a>
             </li>
           </ul>

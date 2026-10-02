@@ -1,4 +1,5 @@
 import Tenant from "../models/Tenant.model.js";
+import Property from "../models/Property.model.js";
 import ErrorResponse from "../utils/error.util.js";
 
 export const getTenants = async (req, res) => {
@@ -83,6 +84,7 @@ export const createTenant = async (req, res) => {
       familyOccupantDetails,
       moveInDate,
       moveOutDate,
+      currentProperty,
     } = req.body;
 
     if (!fullName || !email) {
@@ -92,6 +94,7 @@ export const createTenant = async (req, res) => {
       });
     }
 
+    // Check if tenant with this email already exists
     const existingTenant = await Tenant.findOne({ email });
 
     if (existingTenant) {
@@ -111,12 +114,8 @@ export const createTenant = async (req, res) => {
       familyOccupantDetails,
       moveInDate,
       moveOutDate,
+      currentProperty,
     });
-
-    // Log action
-    if (req.logAction) {
-      req.logAction("tenant-created", "tenant", tenant._id);
-    }
 
     res.status(201).json({
       success: true,
@@ -136,13 +135,8 @@ export const updateTenant = async (req, res) => {
   try {
     const tenant = await Tenant.findByIdAndUpdate(
       req.params.id,
-      {
-        ...req.body,
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
+      { ...req.body },
+      { new: true, runValidators: true }
     );
 
     if (!tenant) {
@@ -150,11 +144,6 @@ export const updateTenant = async (req, res) => {
         success: false,
         message: "Tenant not found",
       });
-    }
-
-    // Log action
-    if (req.logAction) {
-      req.logAction("tenant-updated", "tenant", tenant._id);
     }
 
     res.status(200).json({
@@ -190,11 +179,6 @@ export const deleteTenant = async (req, res) => {
         success: false,
         message: "Tenant not found",
       });
-    }
-
-    // Log action
-    if (req.logAction) {
-      req.logAction("tenant-archived", "tenant", tenant._id);
     }
 
     res.status(200).json({

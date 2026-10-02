@@ -5,12 +5,11 @@ import {
   Table,
   EmptyState,
   Skeleton,
-  StatsCard,
-  Upload,
   Button,
   Input,
   Select,
   Form,
+  Alert,
 } from "../../components/ui";
 import {
   fetchInspections,
@@ -35,6 +34,8 @@ const Inspections = () => {
   } = useSelector((state: any) => state.inspections);
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useSearchParams("");
+  const [formVisible, setFormVisible] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     property: "",
@@ -92,10 +93,16 @@ const Inspections = () => {
     e.preventDefault();
     try {
       const result = await createInspection(form);
-      // Reset form or navigate
-      navigate(`/inspections/${result.data._id}`);
+      setFormVisible(true);
+      // Reset form or navigate to inspection detail
+      setEditingId(null);
+      setFormVisible(false);
     } catch (err: any) {
-      console.error("Inspection creation error:", err);
+      Alert({
+        title: "Error",
+        message: err.response?.data?.message || "Failed to create inspection",
+        variant: "destructive",
+      });
     }
   };
 
@@ -116,90 +123,232 @@ const Inspections = () => {
   return (
     <div className="p-6">
       <Card>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-rentora-dark">
-            {form.type === "move-in" ? "Move-in Inspection" : form.type === "move-out" ? "Move-out Inspection" : "Routine Inspection"}
-          </h2>
-          <button
-            className="text-sm text-rentora-accent font-medium hover:underline"
-            onClick={() => navigate("/inspections/create")}
+        <h2 className="text-2xl font-bold text-rentora-dark mb-6">
+          {form.type === "move-in"
+            ? "Move-in Inspection"
+            : form.type === "move-out"
+              ? "Move-out Inspection"
+              : "Routine Inspection"}
+        </h2>
+
+        <Button
+          variant="secondary"
+          onClick={() => setFormVisible(true)}
+          className="mb-3"
+        >
+          + New {form.type === "move-in" ? "Move-in" : form.type === "move-out" ? "Move-out" : "Routine"} Inspection
+        </Button>
+
+        {formVisible && (
+          <Alert
+            title="Create Inspection"
+            onClose={() => setFormVisible(false)}
+            description="Enter inspection details below"
           >
-            New Inspection
-          </button>
-        </div>
+            <Form onSubmit={onSubmit} className="space-y-4">
+              <Input
+                name="property"
+                type="text"
+                placeholder="Property name/ID"
+                value={form.property}
+                onChange={handleFilterChange}
+                className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+              />
+              <Input
+                name="tenant"
+                type="text"
+                placeholder="Tenant name/ID"
+                value={form.tenant}
+                onChange={handleFilterChange}
+                className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+              />
+              <Input
+                name="inspector"
+                type="text"
+                placeholder="Inspector name"
+                value={form.inspector}
+                onChange={handleFilterChange}
+                className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+              />
+              <Input
+                name="inspectionDate"
+                type="date"
+                value={form.inspectionDate}
+                onChange={handleFilterChange}
+                className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+              />
+              <Select
+                onValueChange={(value: string) =>
+                  setForm((prev) => ({ ...prev, type: value }))
+                }
+                className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+              >
+                <option value="move-in">Move-in</option>
+                <option value="move-out">Move-out</option>
+                <option value="routine">Routine</option>
+              </Select>
 
-        {/* Search and filters */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-          <div>
-            <label className="block text-sm text-rentora-muted mb-1">Search</label>
-            <Input
-              type="text"
-              placeholder="Search inspections..."
-              value={searchQuery || ""}
-              onChange={handleSearch}
-              className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
-            />
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  name="electricityMeter"
+                  type="number"
+                  placeholder="Electricity meter"
+                  value={form.electricityMeter}
+                  onChange={handleFilterChange}
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                />
+                <Input
+                  name="waterMeter"
+                  type="number"
+                  placeholder="Water meter"
+                  value={form.waterMeter}
+                  onChange={handleFilterChange}
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                />
+                <Input
+                  name="gasMeter"
+                  type="number"
+                  placeholder="Gas meter"
+                  value={form.gasMeter}
+                  onChange={handleFilterChange}
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                />
+              </div>
 
-          <div>
-            <label className="block text-sm text-rentora-muted mb-1">Property</label>
-            <select
-              name="property"
-              value={form.property || ""}
-              onChange={handleFilterChange}
-              className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
-            >
-              <option value="">Select property</option>
-            </select>
-          </div>
+              <div className="grid grid-cols-3 gap-4">
+                <Select
+                  onValueChange={(value: string) =>
+                    setForm((prev) => ({ ...prev, generalCondition: value }))
+                  }
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </Select>
 
-          <div>
-            <label className="block text-sm text-rentora-muted mb-1">Tenant</label>
-            <select
-              name="tenant"
-              value={form.tenant || ""}
-              onChange={handleFilterChange}
-              className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
-            >
-              <option value="">Select tenant</option>
-            </select>
-          </div>
+                <Select
+                  onValueChange={(value: string) =>
+                    setForm((prev) => ({ ...prev, walls: value }))
+                  }
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </Select>
 
-          <div>
-            <label className="block text-sm text-rentora-muted mb-1">Type</label>
-            <Select
-              onValueChange={(value: string) => setForm((prev) => ({ ...prev, type: value }))}
-              className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
-            >
-              <option value="move-in">Move-in</option>
-              <option value="move-out">Move-out</option>
-              <option value="routine">Routine</option>
-            </Select>
-          </div>
+                <Select
+                  onValueChange={(value: string) =>
+                    setForm((prev) => ({ ...prev, floors: value }))
+                  }
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </Select>
+              </div>
 
-          <div>
-            <label className="block text-sm text-rentora-muted mb-1">Status</label>
-            <Select
-              onValueChange={(value: string) => setForm((prev) => ({ ...prev, status: value }))}
-              className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
-            >
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-            </Select>
-          </div>
+              <div className="grid grid-cols-3 gap-4">
+                <Select
+                  onValueChange={(value: string) =>
+                    setForm((prev) => ({ ...prev, doors: value }))
+                  }
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </Select>
 
-          <div>
-            <label className="block text-sm text-rentora-muted mb-1">&nbsp;</label>
-            <Button
-              variant="primary"
-              type="submit"
-              onClick={handleSearch}
-              className="px-4 py-2 text-sm text-white bg-rentora-accent rounded hover:bg-rentora-accent/90"
-            >
-              Refresh
-            </Button>
-          </div>
-        </div>
+                <Select
+                  onValueChange={(value: string) =>
+                    setForm((prev) => ({ ...prev, windows: value }))
+                  }
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </Select>
+
+                <Select
+                  onValueChange={(value: string) =>
+                    setForm((prev) => ({ ...prev, kitchen: value }))
+                  }
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <Select
+                  onValueChange={(value: string) =>
+                    setForm((prev) => ({ ...prev, bathroom: value }))
+                  }
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </Select>
+
+                <Select
+                  onValueChange={(value: string) =>
+                    setForm((prev) => ({ ...prev, furniture: value }))
+                  }
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </Select>
+
+                <Select
+                  onValueChange={(value: string) =>
+                    setForm((prev) => ({ ...prev, appliances: value }))
+                  }
+                  className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </Select>
+              </div>
+
+              <Input
+                name="otherRemarks"
+                placeholder="Other remarks"
+                value={form.otherRemarks}
+                onChange={handleFilterChange}
+                className="w-full rounded-lg border border-rentora-border p-2 focus:outline-none focus:ring-rentora-accent"
+                rows={3}
+              />
+
+              <div className="flex gap-3">
+                <Button type="submit" variant="primary">
+                  Save Inspection
+                </Button>
+                <Button variant="outline" onClick={() => setFormVisible(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </Form>
+          </Alert>
+        )}
 
         {/* Inspections table */}
         <div className="overflow-x-auto">

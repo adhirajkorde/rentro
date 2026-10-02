@@ -1,5 +1,5 @@
 import express from "express";
-import { protect } from "../middleware/auth.middleware.js";
+import { protect, authorize } from "../middleware/auth.middleware.js";
 import {
   getTenants,
   getTenant,
@@ -11,7 +11,8 @@ import {
 } from "../controllers/tenant.controller.js";
 
 const router = express.Router();
-router.use(protect);
+// Tenant routes - authenticated owner can manage tenant records
+router.use(protect, authorize("property-owner"));
 
 router.route("/")
   .get(getTenants);
