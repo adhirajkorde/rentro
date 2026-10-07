@@ -1,5 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getDocuments, createDocument, updateDocument, deleteDocument } from "../../services/api";
+import {
+  getDocuments as apiGetDocuments,
+  uploadDocument as apiUploadDocument,
+  deleteDocument as apiDeleteDocument,
+} from "../../services/api";
 
 export interface KycDocument {
   _id: string;
@@ -17,7 +21,7 @@ export interface KycDocument {
   notes: string;
 }
 
-interface DocumentFormValues {
+export interface DocumentFormValues {
   tenant: string;
   documentType: "aadhaar" | "pan" | "passport" | "driving-license" | "other";
   documentNumber: string;
@@ -26,19 +30,34 @@ interface DocumentFormValues {
   expiryDate: string | null;
 }
 
-const initialState = {
+export interface DocumentState {
+  documents: KycDocument[];
+  loading: boolean;
+  error: string | null;
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  filter: Record<string, any>;
+}
+
+const initialState: DocumentState = {
   documents: [],
   loading: false,
-  error: string | null,
+  error: null,
   currentPage: 1,
   totalPages: 1,
   totalCount: 0,
+  filter: {},
 };
 
 export const fetchDocuments = createAsyncThunk(
   "documents/fetchAll",
-  async ({ page = 1, limit = 10, filter = {} } = {}, { rejectWithValue }) => {
+  async (arg: { page?: number; limit?: number; filter?: Record<string, any> } | undefined, { rejectWithValue }) => {
     try {
+      const page = arg?.page || 1;
+      const limit = arg?.limit || 10;
+      const filter = arg?.filter || {};
+
       const params = new URLSearchParams();
       if (filter.tenant) params.set("tenant", filter.tenant);
       if (filter.type) params.set("type", filter.type);
@@ -46,9 +65,9 @@ export const fetchDocuments = createAsyncThunk(
       params.set("page", String(page));
       params.set("limit", String(limit));
 
-      const result = await getDocuments(`${?params}`);
+      const result = await apiGetDocuments(`?${params.toString()}`);
       return {
-        data: result.data?.data || [],
+        data: result.data?.data || result.data || [],
         currentPage: result.data?.page || page,
         totalPages: result.data?.pages || 1,
         totalCount: result.data?.total || 0,
@@ -63,19 +82,7 @@ export const createDocument = createAsyncThunk(
   "documents/create",
   async (documentData: DocumentFormValues, { rejectWithValue }) => {
     try {
-      const result = await createDocument(documentData);
-      return result.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message);
-    }
-  }
-);
-
-export const updateDocument = createAsyncThunk(
-  "documents/update",
-  async ({ id, documentData }: { id: string; documentData: Partial<DocumentFormValues> }, { rejectWithValue }) => {
-    try {
-      const result = await updateDocument({ id }, documentData);
+      const result = await apiUploadDocument(documentData);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -87,7 +94,7 @@ export const deleteDocument = createAsyncThunk(
   "documents/delete",
   async (id: string, { rejectWithValue }) => {
     try {
-      const result = await deleteDocument(id);
+      const result = await apiDeleteDocument(id);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -112,11 +119,27 @@ const documentSlice = createSlice({
       state.error = null;
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchDocuments.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchDocuments.fulfilled, (state, action: any) => {
+        state.loading = false;
+        state.documents = action.payload.data;
+        state.currentPage = action.payload.currentPage;
+        state.totalPages = action.payload.totalPages;
+        state.totalCount = action.payload.totalCount;
+      })
+      .addCase(fetchDocuments.rejected, (state, action: any) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch documents";
+      });
+  },
 });
 
 export const { setDocumentFilter, clearDocumentFilter, setCurrentPage, clearDocumentError } =
   documentSlice.actions;
 
-export default documentReducer;
-
-export type { KycDocument, DocumentFormValues };
+export default documentSlice.reducer;

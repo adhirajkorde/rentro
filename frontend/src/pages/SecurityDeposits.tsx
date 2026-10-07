@@ -50,7 +50,9 @@ const SecurityDeposits = () => {
     setCurrentPage(page);
   };
 
-  if (/* loading */ true) {
+  const { loading } = useSelector((state: any) => state.documents || {});
+
+  if (loading) {
     return <Skeleton className="h-64" />;
   }
 

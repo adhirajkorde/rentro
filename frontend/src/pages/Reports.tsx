@@ -15,7 +15,7 @@ const Reports = () => {
       try {
         const propertiesResp = await fetchProperties();
         const properties = propertiesResp.data?.data || [];
-        
+
         const totalProperties = properties.length;
         const availableProperties = properties.filter((p: any) => p.status === "available").length;
         const occupiedProperties = properties.filter((p: any) => p.status === "occupied").length;
@@ -75,7 +75,7 @@ const Reports = () => {
     <div className="p-6">
       <Card>
         <h2 className="text-2xl font-bold text-rentora-dark mb-6">Reports</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatsCard
             title="Total Properties"
@@ -99,27 +99,27 @@ const Reports = () => {
           />
           <StatsCard
             title="Monthly Expected Rent"
-            value={₹{stats.monthlyExpectedRent.toLocaleString()}}
+            value={`₹${stats.monthlyExpectedRent.toLocaleString()}`}
             subtitle="Based on active properties"
           />
           <StatsCard
             title="Monthly Collected Rent"
-            value={₹{stats.monthlyCollectedRent.toLocaleString()}}
+            value={`₹${stats.monthlyCollectedRent.toLocaleString()}`}
             subtitle="This period collected"
           />
           <StatsCard
             title="Pending Rent"
-            value={₹{stats.pendingRent.toLocaleString()}}
+            value={`₹${stats.pendingRent.toLocaleString()}`}
             subtitle="Outstanding payments"
           />
           <StatsCard
             title="Overdue Rent"
-            value={₹{stats.overdueRent.toLocaleString()}}
+            value={`₹${stats.overdueRent.toLocaleString()}`}
             subtitle="Past due amounts"
           />
           <StatsCard
             title="Security Deposits"
-            value={₹{stats.securityDeposits.toLocaleString()}}
+            value={`₹${stats.securityDeposits.toLocaleString()}`}
             subtitle="Total held deposits"
           />
           <StatsCard

@@ -1,30 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getInspections, createInspection, updateInspection, getPropertyInspections } from "../../services/api";
-
-export interface InspectionMedia {
-  _id: string;
-  inspection: string;
-  url: string;
-  type: "photo" | "video";
-  caption: string;
-  order: number;
-  publicId: string;
-  createdAt: string;
-}
-
-export interface DamageRecord {
-  _id: string;
-  inspection: string;
-  item: string;
-  description: string;
-  previousCondition: "excellent" | "good" | "fair" | "poor";
-  currentCondition: "excellent" | "good" | "fair" | "poor" | null;
-  repairRequired: boolean;
-  estimatedCost: number;
-  deductionAmount: number;
-  notes: string;
-  createdAt: string;
-}
+import {
+  getInspections as apiGetInspections,
+  createInspection as apiCreateInspection,
+  updateInspection as apiUpdateInspection,
+} from "../../services/api";
 
 export interface Inspection {
   _id: string;
@@ -51,7 +30,7 @@ export interface Inspection {
   updatedAt: string;
 }
 
-interface InspectionFormValues {
+export interface InspectionFormValues {
   property: string;
   tenant: string;
   inspector: string;
@@ -72,19 +51,34 @@ interface InspectionFormValues {
   otherRemarks: string;
 }
 
-const initialState = {
+export interface InspectionState {
+  inspections: Inspection[];
+  loading: boolean;
+  error: string | null;
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  filter: Record<string, any>;
+}
+
+const initialState: InspectionState = {
   inspections: [],
   loading: false,
-  error: string | null,
+  error: null,
   currentPage: 1,
   totalPages: 1,
   totalCount: 0,
+  filter: {},
 };
 
 export const fetchInspections = createAsyncThunk(
   "inspections/fetchAll",
-  async ({ page = 1, limit = 10, filter = {} } = {}, { rejectWithValue }) => {
+  async (arg: { page?: number; limit?: number; filter?: Record<string, any> } | undefined, { rejectWithValue }) => {
     try {
+      const page = arg?.page || 1;
+      const limit = arg?.limit || 10;
+      const filter = arg?.filter || {};
+
       const params = new URLSearchParams();
       if (filter.property) params.set("property", filter.property);
       if (filter.tenant) params.set("tenant", filter.tenant);
@@ -94,9 +88,9 @@ export const fetchInspections = createAsyncThunk(
       params.set("page", String(page));
       params.set("limit", String(limit));
 
-      const result = await getInspections(`${?params}`);
+      const result = await apiGetInspections(`?${params.toString()}`);
       return {
-        data: result.data?.data || [],
+        data: result.data?.data || result.data || [],
         currentPage: result.data?.page || page,
         totalPages: result.data?.pages || 1,
         totalCount: result.data?.total || 0,
@@ -111,7 +105,7 @@ export const createInspection = createAsyncThunk(
   "inspections/create",
   async (inspectionData: InspectionFormValues, { rejectWithValue }) => {
     try {
-      const result = await createInspection(inspectionData);
+      const result = await apiCreateInspection(inspectionData);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -123,20 +117,8 @@ export const updateInspection = createAsyncThunk(
   "inspections/update",
   async ({ id, inspectionData }: { id: string; inspectionData: Partial<InspectionFormValues> }, { rejectWithValue }) => {
     try {
-      const result = await updateInspection({ id }, inspectionData);
+      const result = await apiUpdateInspection(id, inspectionData);
       return result.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message);
-    }
-  }
-);
-
-export const fetchPropertyInspections = createAsyncThunk(
-  "inspections/property",
-  async (propertyId: string, { rejectWithValue }) => {
-    try {
-      const result = await getPropertyInspections(propertyId);
-      return { data: result.data || [] };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -160,11 +142,27 @@ const inspectionSlice = createSlice({
       state.error = null;
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchInspections.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchInspections.fulfilled, (state, action: any) => {
+        state.loading = false;
+        state.inspections = action.payload.data;
+        state.currentPage = action.payload.currentPage;
+        state.totalPages = action.payload.totalPages;
+        state.totalCount = action.payload.totalCount;
+      })
+      .addCase(fetchInspections.rejected, (state, action: any) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch inspections";
+      });
+  },
 });
 
 export const { setInspectionFilter, clearInspectionFilter, setCurrentPage, clearInspectionError } =
   inspectionSlice.actions;
 
-export default inspectionReducer;
-
-export type { Inspection, InspectionFormValues, InspectionMedia, DamageRecord };
+export default inspectionSlice.reducer;

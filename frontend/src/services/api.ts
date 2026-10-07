@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:4000/api";
 
 // Create axios instance with defaults
 const api = axios.create({
@@ -8,36 +8,41 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // For cookies/auth
+  withCredentials: true,
 });
 
 // Request interceptor for auth token
 api.interceptors.request.use(
-  (config) => {
+  (config: any) => {
     const token = localStorage.getItem("rentora_token");
     if (token) {
+      config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error: any) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid - clear auth
-      localStorage.removeItem("rentora_token");
-    }
-    return Promise.reject(error);
-  }
-);
+// Auth APIs
+export const registerUser = async (userData: any) => {
+  const { data } = await api.post("/auth/register", userData);
+  return data;
+};
+
+export const loginUser = async (credentials: any) => {
+  const { data } = await api.post("/auth/login", credentials);
+  return data;
+};
+
+export const getMe = async () => {
+  const { data } = await api.get("/auth/me");
+  return data;
+};
 
 // Property APIs
-export const getProperties = async () => {
-  const { data } = await api.get("/properties");
+export const getProperties = async (params: string = "") => {
+  const { data } = await api.get(`/properties${params}`);
   return data;
 };
 
@@ -57,8 +62,8 @@ export const deleteProperty = async (id: string) => {
 };
 
 // Tenant APIs
-export const getTenants = async () => {
-  const { data } = await api.get("/tenants");
+export const getTenants = async (params: string = "") => {
+  const { data } = await api.get(`/tenants${params}`);
   return data;
 };
 
@@ -67,9 +72,19 @@ export const createTenant = async (tenantData: any) => {
   return data;
 };
 
+export const updateTenant = async (id: string, tenantData: any) => {
+  const { data } = await api.put(`/tenants/${id}`, tenantData);
+  return data;
+};
+
+export const deleteTenant = async (id: string) => {
+  const { data } = await api.delete(`/tenants/${id}`);
+  return data;
+};
+
 // Agreement APIs
-export const getAgreements = async () => {
-  const { data } = await api.get("/agreements");
+export const getAgreements = async (params: string = "") => {
+  const { data } = await api.get(`/agreements${params}`);
   return data;
 };
 
@@ -78,9 +93,26 @@ export const createAgreement = async (agreementData: any) => {
   return data;
 };
 
+export const updateAgreement = async (id: string | { id: string }, agreementData?: any) => {
+  const agreementId = typeof id === "object" ? id.id : id;
+  const { data } = await api.put(`/agreements/${agreementId}`, agreementData);
+  return data;
+};
+
+export const deleteAgreement = async (id: string) => {
+  const { data } = await api.delete(`/agreements/${id}`);
+  return data;
+};
+
+export const toggleAgreementStatus = async (arg: { id: string; body?: any; status?: string }) => {
+  const body = arg.body || { status: arg.status };
+  const { data } = await api.patch(`/agreements/${arg.id}/status`, body);
+  return data;
+};
+
 // Rent APIs
-export const getRentRecords = async () => {
-  const { data } = await api.get("/rent");
+export const getRentRecords = async (params: string = "") => {
+  const { data } = await api.get(`/rent${params}`);
   return data;
 };
 
@@ -90,8 +122,8 @@ export const createRentRecord = async (rentData: any) => {
 };
 
 // Payment APIs
-export const getPayments = async () => {
-  const { data } = await api.get("/payments");
+export const getPayments = async (params: string = "") => {
+  const { data } = await api.get(`/payments${params}`);
   return data;
 };
 
@@ -101,8 +133,8 @@ export const recordPayment = async (paymentData: any) => {
 };
 
 // Inspection APIs
-export const getInspections = async () => {
-  const { data } = await api.get("/inspections");
+export const getInspections = async (params: string = "") => {
+  const { data } = await api.get(`/inspections${params}`);
   return data;
 };
 
@@ -111,14 +143,29 @@ export const createInspection = async (inspectionData: any) => {
   return data;
 };
 
+export const updateInspection = async (id: string, inspectionData: any) => {
+  const { data } = await api.put(`/inspections/${id}`, inspectionData);
+  return data;
+};
+
+export const deleteInspection = async (id: string) => {
+  const { data } = await api.delete(`/inspections/${id}`);
+  return data;
+};
+
 // Document APIs
-export const getDocuments = async () => {
-  const { data } = await api.get("/documents");
+export const getDocuments = async (params: string = "") => {
+  const { data } = await api.get(`/documents${params}`);
   return data;
 };
 
 export const uploadDocument = async (documentData: any) => {
   const { data } = await api.post("/documents", documentData);
+  return data;
+};
+
+export const deleteDocument = async (id: string) => {
+  const { data } = await api.delete(`/documents/${id}`);
   return data;
 };
 

@@ -1,5 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getTenants, createTenant, updateTenant, deleteTenant, searchTenants, filterTenants } from "../../services/api";
+import {
+  getTenants as apiGetTenants,
+  createTenant as apiCreateTenant,
+  updateTenant as apiUpdateTenant,
+  deleteTenant as apiDeleteTenant,
+} from "../../services/api";
 
 export interface Tenant {
   _id: string;
@@ -20,7 +25,7 @@ export interface Tenant {
   updatedAt: string;
 }
 
-interface TenantFormValues {
+export interface TenantFormValues {
   fullName: string;
   email: string;
   phone: string;
@@ -33,10 +38,20 @@ interface TenantFormValues {
   currentProperty: string | null;
 }
 
-const initialState = {
+export interface TenantState {
+  tenants: Tenant[];
+  loading: boolean;
+  error: string | null;
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  filter: Record<string, any>;
+}
+
+const initialState: TenantState = {
   tenants: [],
   loading: false,
-  error: string | null,
+  error: null,
   currentPage: 1,
   totalPages: 1,
   totalCount: 0,
@@ -48,16 +63,21 @@ const initialState = {
 
 export const fetchTenants = createAsyncThunk(
   "tenants/fetchAll",
-  async ({ page = 1, limit = 10, filter = initialState.filter } = {}, { rejectWithValue }) => {
+  async (arg: { page?: number; limit?: number; filter?: Record<string, any> } | undefined, { rejectWithValue }) => {
     try {
-      const result = await getTenants({
-        page: String(page),
-        limit: String(limit),
-        status: filter.status,
-        property: filter.property,
-      });
+      const page = arg?.page || 1;
+      const limit = arg?.limit || 10;
+      const filter = arg?.filter || initialState.filter;
+
+      const params = new URLSearchParams();
+      if (filter.status) params.set("status", filter.status);
+      if (filter.property) params.set("property", filter.property);
+      params.set("page", String(page));
+      params.set("limit", String(limit));
+
+      const result = await apiGetTenants(`?${params.toString()}`);
       return {
-        data: result.data?.data || [],
+        data: result.data?.data || result.data || [],
         currentPage: result.data?.page || page,
         totalPages: result.data?.pages || 1,
         totalCount: result.data?.total || 0,
@@ -72,7 +92,7 @@ export const createTenant = createAsyncThunk(
   "tenants/create",
   async (tenantData: TenantFormValues, { rejectWithValue }) => {
     try {
-      const result = await createTenant(tenantData);
+      const result = await apiCreateTenant(tenantData);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -82,9 +102,9 @@ export const createTenant = createAsyncThunk(
 
 export const updateTenant = createAsyncThunk(
   "tenants/update",
-  async ({ id, tenantData }: { id: string; tenantData: TenantFormValues }, { rejectWithValue }) => {
+  async ({ id, tenantData }: { id: string; tenantData: Partial<TenantFormValues> }, { rejectWithValue }) => {
     try {
-      const result = await updateTenant({ id }, { ...tenantData });
+      const result = await apiUpdateTenant(id, tenantData);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -96,37 +116,8 @@ export const deleteTenant = createAsyncThunk(
   "tenants/delete",
   async (id: string, { rejectWithValue }) => {
     try {
-      const result = await deleteTenant(id);
+      const result = await apiDeleteTenant(id);
       return result.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message);
-    }
-  }
-);
-
-export const searchTenants = createAsyncThunk(
-  "tenants/search",
-  async (query: string, { rejectWithValue }) => {
-    try {
-      const result = await searchTenants(`?q=${encodeURIComponent(query)}`);
-      return { data: result.data || [] };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message);
-    }
-  }
-);
-
-export const filterTenants = createAsyncThunk(
-  "tenants/filter",
-  async (filter: typeof initialState.filter, { rejectWithValue }) => {
-    try {
-      const result = await filterTenants(filter);
-      return {
-        data: result.data || [],
-        currentPage: 1,
-        totalPages: 1,
-        totalCount: result.data?.length || 0,
-      };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -152,10 +143,26 @@ const tenantSlice = createSlice({
       state.error = null;
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchTenants.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTenants.fulfilled, (state, action: any) => {
+        state.loading = false;
+        state.tenants = action.payload.data;
+        state.currentPage = action.payload.currentPage;
+        state.totalPages = action.payload.totalPages;
+        state.totalCount = action.payload.totalCount;
+      })
+      .addCase(fetchTenants.rejected, (state, action: any) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch tenants";
+      });
+  },
 });
 
 export const { setTenantFilter, clearTenantFilter, setCurrentPage, clearTenantError } = tenantSlice.actions;
 
-export default tenantReducer;
-
-export type { Tenant, TenantFormValues };
+export default tenantSlice.reducer;

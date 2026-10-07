@@ -1,6 +1,6 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-interface ReportStats {
+export interface ReportStats {
   totalProperties: number;
   availableProperties: number;
   occupiedProperties: number;
@@ -17,7 +17,7 @@ interface ReportStats {
   totalRefundedDeposits: number;
 }
 
-interface ReportFilters {
+export interface ReportFilters {
   property?: string;
   tenant?: string;
   agreement?: string;
@@ -26,10 +26,16 @@ interface ReportFilters {
   status?: string;
 }
 
-const initialState = {
-  stats: {} as ReportStats,
+export interface ReportsState {
+  stats: Partial<ReportStats>;
+  loading: boolean;
+  error: string | null;
+}
+
+const initialState: ReportsState = {
+  stats: {},
   loading: false,
-  error: string | null,
+  error: null,
 };
 
 const reportsSlice = createSlice({
@@ -47,6 +53,4 @@ const reportsSlice = createSlice({
 
 export const { setStats, clearError } = reportsSlice.actions;
 
-export default reportsReducer;
-
-export type { ReportStats, ReportFilters };
+export default reportsSlice.reducer;

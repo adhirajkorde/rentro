@@ -1,5 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getAgreements, createAgreement, updateAgreement, deleteAgreement, toggleAgreementStatus } from "../../services/api";
+import {
+  getAgreements as apiGetAgreements,
+  createAgreement as apiCreateAgreement,
+  updateAgreement as apiUpdateAgreement,
+  deleteAgreement as apiDeleteAgreement,
+  toggleAgreementStatus as apiToggleAgreementStatus,
+} from "../../services/api";
 
 export interface Agreement {
   _id: string;
@@ -20,7 +26,7 @@ export interface Agreement {
   updatedAt: string;
 }
 
-interface AgreementFormValues {
+export interface AgreementFormValues {
   tenant: string;
   property: string;
   startDate: string;
@@ -33,19 +39,34 @@ interface AgreementFormValues {
   termsAndConditions: string;
 }
 
-const initialState = {
+export interface AgreementState {
+  agreements: Agreement[];
+  loading: boolean;
+  error: string | null;
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  filter: Record<string, any>;
+}
+
+const initialState: AgreementState = {
   agreements: [],
   loading: false,
-  error: string | null,
+  error: null,
   currentPage: 1,
   totalPages: 1,
   totalCount: 0,
+  filter: {},
 };
 
 export const fetchAgreements = createAsyncThunk(
   "agreements/fetchAll",
-  async ({ page = 1, limit = 10, filter = {} } = {}, { rejectWithValue }) => {
+  async (arg: { page?: number; limit?: number; filter?: Record<string, any> } | undefined, { rejectWithValue }) => {
     try {
+      const page = arg?.page || 1;
+      const limit = arg?.limit || 10;
+      const filter = arg?.filter || {};
+
       const params = new URLSearchParams();
       if (filter.owner) params.set("owner", filter.owner);
       if (filter.tenant) params.set("tenant", filter.tenant);
@@ -55,9 +76,9 @@ export const fetchAgreements = createAsyncThunk(
       params.set("page", String(page));
       params.set("limit", String(limit));
 
-      const result = await getAgreements(`${?params}`);
+      const result = await apiGetAgreements(`?${params.toString()}`);
       return {
-        data: result.data?.data || [],
+        data: result.data?.data || result.data || [],
         currentPage: result.data?.page || page,
         totalPages: result.data?.pages || 1,
         totalCount: result.data?.total || 0,
@@ -72,7 +93,7 @@ export const createAgreement = createAsyncThunk(
   "agreements/create",
   async (agreementData: AgreementFormValues, { rejectWithValue }) => {
     try {
-      const result = await createAgreement(agreementData);
+      const result = await apiCreateAgreement(agreementData);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -84,7 +105,7 @@ export const updateAgreement = createAsyncThunk(
   "agreements/update",
   async ({ id, agreementData }: { id: string; agreementData: AgreementFormValues }, { rejectWithValue }) => {
     try {
-      const result = await updateAgreement({ id }, agreementData);
+      const result = await apiUpdateAgreement(id, agreementData);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -96,7 +117,7 @@ export const deleteAgreement = createAsyncThunk(
   "agreements/delete",
   async (id: string, { rejectWithValue }) => {
     try {
-      const result = await deleteAgreement(id);
+      const result = await apiDeleteAgreement(id);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -108,7 +129,7 @@ export const toggleAgreementStatus = createAsyncThunk(
   "agreements/toggleStatus",
   async ({ id, status }: { id: string; status: string }, { rejectWithValue }) => {
     try {
-      const result = await toggleAgreementStatus({ id, body: { status } });
+      const result = await apiToggleAgreementStatus({ id, status });
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -133,11 +154,27 @@ const agreementSlice = createSlice({
       state.error = null;
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchAgreements.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAgreements.fulfilled, (state, action: any) => {
+        state.loading = false;
+        state.agreements = action.payload.data;
+        state.currentPage = action.payload.currentPage;
+        state.totalPages = action.payload.totalPages;
+        state.totalCount = action.payload.totalCount;
+      })
+      .addCase(fetchAgreements.rejected, (state, action: any) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch agreements";
+      });
+  },
 });
 
 export const { setAgreementFilter, clearAgreementFilter, setCurrentPage, clearAgreementError } =
   agreementSlice.actions;
 
-export default agreementReducer;
-
-export type { Agreement, AgreementFormValues };
+export default agreementSlice.reducer;

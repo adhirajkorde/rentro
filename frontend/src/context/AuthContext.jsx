@@ -15,6 +15,13 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem("rentora_token") || "");
   const [loading, setLoading] = useState(true);
 
+  const logout = () => {
+    setUser(null);
+    setToken("");
+    localStorage.removeItem("rentora_token");
+    localStorage.removeItem("rentora_user");
+  };
+
   // Hydrate auth session on mount
   useEffect(() => {
     const initAuth = async () => {
@@ -69,13 +76,6 @@ export const AuthProvider = ({ children }) => {
 
   const changePassword = async (passwords) => {
     return changePasswordApi(passwords);
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken("");
-    localStorage.removeItem("rentora_token");
-    localStorage.removeItem("rentora_user");
   };
 
   return (

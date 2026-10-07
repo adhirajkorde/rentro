@@ -1,5 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getProperties, createProperty as apiCreateProperty, updateProperty as apiUpdateProperty, deleteProperty as apiDeleteProperty, searchProperties as apiSearchProperties, filterProperties as apiFilterProperties } from "../../services/api";
+import {
+  getProperties as apiGetProperties,
+  createProperty as apiCreateProperty,
+  updateProperty as apiUpdateProperty,
+  deleteProperty as apiDeleteProperty,
+} from "../../services/api";
 
 export interface Property {
   _id: string;
@@ -28,7 +33,7 @@ export interface Property {
   updatedAt: string;
 }
 
-interface PropertyFormValues {
+export interface PropertyFormValues {
   name: string;
   type: string;
   description: string;
@@ -50,23 +55,17 @@ interface PropertyFormValues {
   status: string;
 }
 
-const initialState: {
+export interface PropertyState {
   properties: Property[];
   loading: boolean;
   error: string | null;
   currentPage: number;
   totalPages: number;
   totalCount: number;
-  filter: {
-    type: string;
-    status: string;
-    city: string;
-    state: string;
-    minRent: number;
-    maxRent: number;
-    q: string;
-  };
-} = {
+  filter: Record<string, any>;
+}
+
+const initialState: PropertyState = {
   properties: [],
   loading: false,
   error: null,
@@ -86,8 +85,12 @@ const initialState: {
 
 export const fetchProperties = createAsyncThunk(
   "properties/fetchAll",
-  async ({ page = 1, limit = 10, filter = initialState.filter } = {}, { rejectWithValue }) => {
+  async (arg: { page?: number; limit?: number; filter?: Record<string, any> } | undefined, { rejectWithValue }) => {
     try {
+      const page = arg?.page || 1;
+      const limit = arg?.limit || 10;
+      const filter = arg?.filter || initialState.filter;
+
       const params = new URLSearchParams();
       if (filter.q) params.set("q", filter.q);
       if (filter.type) params.set("type", filter.type);
@@ -99,9 +102,9 @@ export const fetchProperties = createAsyncThunk(
       params.set("page", String(page));
       params.set("limit", String(limit));
 
-      const result = await getProperties(`${?params}`);
+      const result = await apiGetProperties(`?${params.toString()}`);
       return {
-        data: result.data?.data || [],
+        data: result.data?.data || result.data || [],
         currentPage: result.data?.page || page,
         totalPages: result.data?.pages || 1,
         totalCount: result.data?.total || 0,
@@ -116,7 +119,7 @@ export const createProperty = createAsyncThunk(
   "properties/create",
   async (propertyData: PropertyFormValues, { rejectWithValue }) => {
     try {
-      const result = await createProperty(propertyData);
+      const result = await apiCreateProperty(propertyData);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -126,9 +129,9 @@ export const createProperty = createAsyncThunk(
 
 export const updateProperty = createAsyncThunk(
   "properties/update",
-  async ({ id, propertyData }: { id: string; propertyData: PropertyFormValues }, { rejectWithValue }) => {
+  async ({ id, propertyData }: { id: string; propertyData: Partial<PropertyFormValues> }, { rejectWithValue }) => {
     try {
-      const result = await updateProperty(`${id}`, propertyData);
+      const result = await apiUpdateProperty(id, propertyData);
       return result.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -140,39 +143,8 @@ export const deleteProperty = createAsyncThunk(
   "properties/delete",
   async (id: string, { rejectWithValue }) => {
     try {
-      const result = await deleteProperty(`${id}`);
+      const result = await apiDeleteProperty(id);
       return result.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message);
-    }
-  }
-);
-
-export const searchProperties = createAsyncThunk(
-  "properties/search",
-  async (query: string, { rejectWithValue }) => {
-    try {
-      const result = await searchProperties(`?q=${encodeURIComponent(query)}`);
-      return {
-        data: result.data || [],
-      };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message);
-    }
-  }
-);
-
-export const filterProperties = createAsyncThunk(
-  "properties/filter",
-  async (filter: typeof initialState.filter, { rejectWithValue }) => {
-    try {
-      const result = await filterProperties(filter);
-      return {
-        data: result.data || [],
-        currentPage: 1,
-        totalPages: 1,
-        totalCount: result.data?.length || 0,
-      };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -198,11 +170,27 @@ const propertySlice = createSlice({
       state.error = null;
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchProperties.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchProperties.fulfilled, (state, action: any) => {
+        state.loading = false;
+        state.properties = action.payload.data;
+        state.currentPage = action.payload.currentPage;
+        state.totalPages = action.payload.totalPages;
+        state.totalCount = action.payload.totalCount;
+      })
+      .addCase(fetchProperties.rejected, (state, action: any) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch properties";
+      });
+  },
 });
 
 export const { setPropertyFilter, clearPropertyFilter, setCurrentPage, clearPropertyError } =
   propertySlice.actions;
 
-export default propertyReducer;
-
-export type { Property, PropertyFormValues };
+export default propertySlice.reducer;

@@ -33,7 +33,7 @@ const Dashboard = () => {
         // Fetch properties
         const propertiesResp = await getProperties();
         const properties = propertiesResp.data || [];
-        
+
         const totalProperties = properties.length;
         const availableProperties = properties.filter((p: any) => p.status === "available").length;
         const occupiedProperties = properties.filter((p: any) => p.status === "occupied").length;
@@ -50,7 +50,7 @@ const Dashboard = () => {
 
         // Calculate rent stats from rent records
         const { data: rentRecords } = await getRentRecords();
-        const monthlyExpectedRent = totalProperties > 0 
+        const monthlyExpectedRent = totalProperties > 0
           ? (properties.reduce((sum: number, p: any) => sum + (p.monthlyRent || 0), 0) / totalProperties)
           : 0;
         const monthlyCollectedRent = rentRecords
@@ -97,7 +97,7 @@ const Dashboard = () => {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-rentora-dark mb-6">Dashboard</h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <StatsCard
           title="Total Properties"

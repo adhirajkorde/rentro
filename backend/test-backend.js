@@ -1,9 +1,12 @@
-import "./server.js";
+const base = `http://127.0.0.1:4000/api`;
 
 const runBackendTest = async () => {
-  // Wait 500ms for server to start
-  await new Promise((r) => setTimeout(r, 500));
-  const base = `http://127.0.0.1:4000/api`;
+  try {
+    await fetch(`${base}/dashboard`);
+  } catch {
+    await import("./server.js");
+    await new Promise((r) => setTimeout(r, 600));
+  }
 
   console.log("🚀 Running complete backend integration test...");
 
