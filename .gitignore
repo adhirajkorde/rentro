@@ -31,6 +31,10 @@ uploads/
 # Database
 *.db
 *.sqlite
+*.sqlite-*
+*.sqlite3
+data/
+backend/data/
 
 # Misc
 .DS_Store

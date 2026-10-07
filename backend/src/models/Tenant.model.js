@@ -1,4 +1,4 @@
-import sqlite from "./sqliteSchema.js";
+l̥import sqlite from "./sqliteSchema.js";
 const { model } = sqlite;
 
 const tenantSchema = new sqlite.Schema(
